@@ -1,0 +1,594 @@
+<title>DTA 2026 TA Review</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Newsreader:opsz,wght@6..72,500;6..72,600&family=Public+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@500&display=swap">
+<style>
+/* Layout: a reviewer's desk — nominee list on the left, the open file and score sheet on the right. */
+:root{
+  --bg:#f4f6f8; --surface:#ffffff; --sunk:#eef1f4; --ink:#17212b; --muted:#5a6573; --line:#dbe0e6;
+  --accent:#28598a; --accent-soft:#e2ebf4; --on-accent:#ffffff;
+  --gold:#a77a22; --gold-soft:#f6edd9; --good:#2e7a4d; --good-soft:#e2f1e8; --warn:#9a5c00; --warn-soft:#fbeedb; --crit:#ad2a22;
+  --f-display:"Newsreader", Georgia, "Times New Roman", serif;
+  --f-body:"Public Sans", system-ui, -apple-system, "Segoe UI", sans-serif;
+  --f-mono:"IBM Plex Mono", ui-monospace, Menlo, Consolas, monospace;
+  --r:10px;
+}
+@media (prefers-color-scheme: dark){ :root:not([data-theme="light"]){
+  --bg:#0f141a; --surface:#161d25; --sunk:#121820; --ink:#e5eaf0; --muted:#97a2b0; --line:#2a3440;
+  --accent:#86b4e2; --accent-soft:#1b2a3a; --on-accent:#0f141a;
+  --gold:#e1b65e; --gold-soft:#2c2416; --good:#6fc493; --good-soft:#15291e; --warn:#f0a744; --warn-soft:#2d2112; --crit:#f2877f;
+  color-scheme:dark }}
+:root[data-theme="dark"]{
+  --bg:#0f141a; --surface:#161d25; --sunk:#121820; --ink:#e5eaf0; --muted:#97a2b0; --line:#2a3440;
+  --accent:#86b4e2; --accent-soft:#1b2a3a; --on-accent:#0f141a;
+  --gold:#e1b65e; --gold-soft:#2c2416; --good:#6fc493; --good-soft:#15291e; --warn:#f0a744; --warn-soft:#2d2112; --crit:#f2877f;
+  color-scheme:dark }
+*{box-sizing:border-box}
+body{background:var(--bg);color:var(--ink);font-family:var(--f-body);font-size:15px;line-height:1.5;
+  padding-left:max(16px, env(safe-area-inset-left, 0px));padding-right:max(16px, env(safe-area-inset-right, 0px));padding-block:20px 40px}
+.wrap{max-width:1180px;margin:0 auto;display:flex;flex-direction:column;gap:16px}
+h1,h2,h3{font-family:var(--f-display);font-weight:600;text-wrap:balance;margin:0;line-height:1.2}
+h1{font-size:28px} h2{font-size:24px} h3{font-size:17px;font-family:var(--f-body)}
+button{font:inherit;color:inherit;cursor:pointer}
+:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.num{font-family:var(--f-mono);font-variant-numeric:tabular-nums}
+.muted{color:var(--muted)}
+.eyebrow{font-size:12px;letter-spacing:.06em;text-transform:uppercase;color:var(--muted);font-weight:600}
+
+/* header */
+.top{display:flex;flex-wrap:wrap;align-items:flex-end;justify-content:space-between;gap:12px 24px}
+.progress{min-width:220px;flex:0 1 320px;display:flex;flex-direction:column;gap:6px}
+.bar{height:8px;border-radius:99px;background:var(--sunk);border:1px solid var(--line);overflow:hidden}
+.bar>i{display:block;height:100%;background:var(--good);width:0;transition:width .3s}
+.tabs{display:flex;gap:4px;border-bottom:1px solid var(--line)}
+.tab{background:none;border:0;padding:10px 14px;border-bottom:2px solid transparent;color:var(--muted);font-weight:600}
+.tab[aria-selected="true"]{color:var(--ink);border-bottom-color:var(--accent)}
+.notice{border:1px solid var(--line);background:var(--warn-soft);color:var(--ink);border-radius:var(--r);padding:10px 14px;font-size:14px}
+
+/* desk */
+.desk{display:grid;grid-template-columns:300px minmax(0,1fr);gap:16px;align-items:start}
+@media (max-width:820px){.desk{grid-template-columns:minmax(0,1fr)}}
+.panel{background:var(--surface);border:1px solid var(--line);border-radius:var(--r)}
+.list{display:flex;flex-direction:column;max-height:calc(100vh - 220px);min-height:320px}
+@media (max-width:820px){.list{max-height:46vh}}
+.list-tools{padding:12px;display:flex;flex-direction:column;gap:8px;border-bottom:1px solid var(--line)}
+input[type=search],input[type=url],textarea,select{font:inherit;color:var(--ink);background:var(--bg);border:1px solid var(--line);border-radius:8px;padding:8px 10px;width:100%}
+.chips{display:flex;gap:6px;flex-wrap:wrap}
+.chip{border:1px solid var(--line);background:var(--surface);border-radius:99px;padding:3px 10px;font-size:13px;color:var(--muted)}
+.chip[aria-pressed="true"]{background:var(--accent-soft);border-color:var(--accent);color:var(--ink)}
+.items{overflow-y:auto;padding:6px}
+.item{width:100%;text-align:left;background:none;border:0;border-radius:8px;padding:8px 10px;display:grid;grid-template-columns:minmax(0,1fr) auto;gap:2px 8px;align-items:center}
+.item:hover{background:var(--sunk)}
+.item[aria-current="true"]{background:var(--accent-soft)}
+.item .nm{font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.item .dp{grid-column:1;font-size:12.5px;color:var(--muted);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.item .st{grid-row:1 / span 2;grid-column:2}
+.pill{display:inline-flex;align-items:center;gap:5px;font-size:12px;font-weight:600;border-radius:99px;padding:2px 9px;white-space:nowrap}
+.pill.none{background:var(--sunk);color:var(--muted)}
+.pill.prog{background:var(--warn-soft);color:var(--warn)}
+.pill.done{background:var(--good-soft);color:var(--good)}
+
+/* file */
+.file{padding:20px;display:flex;flex-direction:column;gap:20px;min-width:0}
+.file-head{display:flex;flex-wrap:wrap;justify-content:space-between;gap:12px}
+.facts{display:flex;flex-wrap:wrap;gap:6px 16px;font-size:14px;color:var(--muted)}
+.facts b{color:var(--ink);font-weight:600}
+.packet{border:1px solid var(--line);border-radius:var(--r);background:var(--sunk);padding:14px;display:flex;flex-direction:column;gap:10px}
+.packet ol{margin:0;padding-left:20px;columns:2;column-gap:24px;font-size:14px}
+@media (max-width:560px){.packet ol{columns:1}}
+.btn{display:inline-flex;align-items:center;gap:6px;border-radius:8px;padding:8px 14px;font-weight:600;border:1px solid var(--line);background:var(--surface);text-decoration:none;color:var(--ink)}
+.btn.primary{background:var(--accent);border-color:var(--accent);color:var(--on-accent)}
+.btn[disabled]{opacity:.5;cursor:default}
+.flag{color:var(--crit);font-weight:600;font-size:14px}
+.row{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+
+.crit{border-top:1px solid var(--line);padding-top:16px;display:flex;flex-direction:column;gap:10px}
+.crit-head{display:flex;justify-content:space-between;gap:12px;align-items:baseline}
+details{font-size:14px;color:var(--muted)}
+details summary{cursor:pointer;color:var(--accent);font-weight:500;width:max-content}
+details ul{margin:6px 0 0;padding-left:18px;display:flex;flex-direction:column;gap:4px;max-width:70ch}
+.scale{display:flex;flex-wrap:wrap;gap:6px}
+.sc{min-width:44px;height:40px;border-radius:8px;border:1px solid var(--line);background:var(--surface);font-family:var(--f-mono);font-variant-numeric:tabular-nums}
+.sc.half{min-width:40px;color:var(--muted);font-size:13px}
+.sc[aria-pressed="true"]{background:var(--accent);border-color:var(--accent);color:var(--on-accent)}
+.sc.clear{font-family:var(--f-body);font-size:13px;color:var(--muted);border-style:dashed}
+.ends{display:flex;justify-content:space-between;font-size:12px;color:var(--muted);max-width:470px}
+.crit.overall{background:var(--gold-soft);border:1px solid var(--line);border-radius:var(--r);padding:16px}
+.totals{display:flex;flex-wrap:wrap;gap:12px}
+.tot{border:1px solid var(--line);border-radius:var(--r);padding:10px 14px;min-width:140px}
+.tot .v{font-size:24px}
+.foot{display:flex;flex-wrap:wrap;justify-content:space-between;gap:12px;align-items:center;border-top:1px solid var(--line);padding-top:16px}
+.saved{font-size:13px;color:var(--muted)}
+
+/* results */
+.results{padding:20px;display:flex;flex-direction:column;gap:20px}
+.tablewrap{overflow-x:auto;border:1px solid var(--line);border-radius:var(--r)}
+table{border-collapse:collapse;width:100%;font-size:14px}
+th,td{padding:8px 12px;border-bottom:1px solid var(--line);text-align:left;white-space:nowrap}
+th{font-size:12px;letter-spacing:.04em;text-transform:uppercase;color:var(--muted);background:var(--sunk);font-weight:600}
+td.r,th.r{text-align:right}
+tr:last-child td{border-bottom:0}
+.spark{display:inline-block;width:90px;height:8px;background:var(--sunk);border-radius:99px;position:relative;vertical-align:middle}
+.spark i{position:absolute;top:0;height:8px;border-radius:99px;background:var(--accent);opacity:.55}
+.spark b{position:absolute;top:-2px;width:3px;height:12px;background:var(--ink);border-radius:2px}
+.empty{padding:24px;color:var(--muted);text-align:center}
+
+/* live summary */
+.tiles{display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:12px}
+.tile{border:1px solid var(--line);border-radius:var(--r);padding:12px 14px;background:var(--surface)}
+.tile .v{font-size:26px}
+.two{display:grid;grid-template-columns:repeat(auto-fit,minmax(320px,1fr));gap:16px}
+.card{border:1px solid var(--line);border-radius:var(--r);padding:16px;display:flex;flex-direction:column;gap:10px;min-width:0}
+.hbs{display:flex;flex-direction:column;gap:8px}
+.hb{display:grid;grid-template-columns:minmax(0,1.3fr) minmax(60px,1fr) 36px auto;gap:10px;align-items:center;font-size:13.5px}
+.hb-l{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.hb-t{height:10px;background:var(--sunk);border-radius:99px;overflow:hidden}
+.hb-t i{display:block;height:100%;background:var(--accent);border-radius:99px}
+.hb-v{text-align:right;font-weight:600}
+.hb-s{font-size:12px;white-space:nowrap}
+.hist{display:grid;grid-template-columns:repeat(6,minmax(0,1fr));gap:10px;height:170px;align-items:end;padding-top:6px}
+.hcol{display:grid;grid-template-rows:auto 1fr auto;height:100%;align-items:end;justify-items:center;gap:4px}
+.hbar{width:100%;max-width:64px;background:var(--accent);opacity:.8;border-radius:6px 6px 0 0;min-height:2px;align-self:end}
+.hnum{font-size:13px;font-weight:600}
+.hlab{font-size:12px;color:var(--muted);text-align:center}
+.brief{white-space:pre-wrap;font-size:14.5px;line-height:1.6;max-width:75ch;border-left:3px solid var(--gold);padding-left:14px}
+.live{display:inline-block;width:8px;height:8px;border-radius:50%;background:var(--good);margin-right:8px;vertical-align:middle;animation:pulse 2s infinite}
+@keyframes pulse{50%{opacity:.35}}
+@media (max-width:560px){.hb{grid-template-columns:minmax(0,1fr) 36px;}.hb-t,.hb-s{display:none}}
+@media (prefers-reduced-motion: reduce){*{transition:none!important}}
+</style>
+
+<div class="wrap">
+  <header class="top">
+    <div>
+      <div class="eyebrow">Distinguished Teaching Award · Teaching Assistants · 2026</div>
+      <h1>Nominee review</h1>
+    </div>
+    <div class="progress" aria-live="polite">
+      <div class="row" style="justify-content:space-between"><span id="progText" class="muted">0 of 44 scored</span><span id="who" class="muted"></span></div>
+      <div class="bar"><i id="progBar"></i></div>
+    </div>
+  </header>
+
+  <div id="notice" class="notice" hidden></div>
+
+  <nav class="tabs" role="tablist">
+    <button class="tab" role="tab" id="tabScore" aria-selected="true">Score nominees</button>
+    <button class="tab" role="tab" id="tabResults" aria-selected="false" hidden>Live summary</button>
+  </nav>
+
+  <section id="viewScore" class="desk">
+    <aside class="panel list" aria-label="Nominees">
+      <div class="list-tools">
+        <input type="search" id="q" placeholder="Search name or department" aria-label="Search nominees">
+        <div class="chips" role="group" aria-label="Filter by status">
+          <button class="chip" data-f="all" aria-pressed="true">All</button>
+          <button class="chip" data-f="none" aria-pressed="false">Not started</button>
+          <button class="chip" data-f="prog" aria-pressed="false">In progress</button>
+          <button class="chip" data-f="done" aria-pressed="false">Scored</button>
+        </div>
+      </div>
+      <div class="items" id="items"></div>
+    </aside>
+    <article class="panel file" id="file" aria-live="polite"></article>
+  </section>
+
+  <section id="viewResults" class="panel results" hidden></section>
+</div>
+
+<script>
+// ---------- Nominees: name, department, division, title, packet pages, artifacts (of 5), LORs (of 3), note
+const NOMINEES = [
+["Arpit Gaind","Undergraduate Education","Undergraduate Education","Teaching Fellow",27,5,3,""],
+["Ashley Hannah","Art","Arts and Architecture","Teaching Assistant",24,3,2,""],
+["Brendan Russ","Chemical and Biomolecular Engineering","Engineering","Teaching Fellow",21,5,3,""],
+["Charlotte Bryant","Nursing","Nursing","Teaching Associate",26,4,2,""],
+["Christian Gerard Capuno","Integrative Biology and Physiology","Life Sciences","Teaching Assistant",23,5,3,""],
+["Christina Toma","Education","Education & Information Studies","Teaching Associate",10,0,3,"Packet incomplete: Nominee Statement, Teaching Philosophy and all Teaching Artifacts could not be retrieved."],
+["Daisy Mugodzeri","Civil and Environmental Engineering","Engineering","Teaching Assistant",24,5,3,""],
+["Dominique Stumbaugh","Atmospheric and Oceanic Sciences","Physical Sciences","Teaching Fellow",20,5,3,""],
+["Dzmitry Vaido","Physics and Astronomy","Physical Sciences","Teaching Fellow",25,3,3,""],
+["Eilam Morag","Electrical Engineering","Engineering","Teaching Fellow",23,5,3,""],
+["Elayne Stecher","Political Science","Social Sciences","Teaching Fellow",31,4,3,""],
+["Gabriella Sigal","Integrative Biology and Physiology","Life Sciences","Teaching Assistant",23,4,3,""],
+["Garret May","Materials Science and Engineering","Engineering","Teaching Fellow",24,5,3,""],
+["Gillian Haigh","Art","Arts and Architecture","Teaching Assistant",21,4,3,""],
+["Glenn Nurwono","Chemistry and Biochemistry","Physical Sciences","Teaching Fellow",24,4,3,"Teaching Artifact 1 (syllabus) is being added to the packet."],
+["Gloria Hyun","Civil and Environmental Engineering","Engineering","Teaching Assistant",18,2,2,""],
+["Hannah Widmaier","Philosophy","Humanities","Teaching Associate",19,5,1,""],
+["Isaias Roberson","Molecular, Cell, and Developmental Biology","Life Sciences","Teaching Assistant",24,4,3,""],
+["Joshua Goetz","Political Science","Social Sciences","Teaching Assistant",19,5,2,""],
+["Katarina Yuan","English","Humanities","Teaching Fellow",24,1,2,""],
+["Katherine Hernandez","Institute of the Environment and Sustainability","Life Sciences","Teaching Fellow",21,3,2,""],
+["Katherine Smock","Sociology","Social Sciences","Teaching Assistant",19,5,3,""],
+["Marianne Gutierrez","Nursing","Nursing","Teaching Fellow",18,3,2,""],
+["Maryam Ghamarchehreh","Civil and Environmental Engineering","Engineering","Teaching Assistant",56,4,2,""],
+["Michelle De Luna","Geography","Social Sciences","Teaching Fellow",23,5,3,""],
+["Min Kyu Lee","Chemistry and Biochemistry","Physical Sciences","Teaching Assistant",23,3,2,""],
+["Nallely Valenzuela","Political Science","Social Sciences","Teaching Fellow",21,4,2,""],
+["Narayan Gopinathan","Institute of the Environment and Sustainability","Physical Sciences","Teaching Assistant",87,5,3,""],
+["Nicholas Hu","Mathematics","Physical Sciences","Teaching Fellow",20,3,3,""],
+["Parnian Hemmati","Mechanical and Aerospace Engineering","Engineering","Teaching Fellow",21,5,3,""],
+["Passion Lord","Education","Education & Information Studies","Teaching Associate",25,3,3,""],
+["Raquel Zandomeneghi","Spanish and Portuguese","Humanities","Teaching Fellow",23,5,3,""],
+["Roshini Agarwal","Art","Arts and Architecture","Teaching Assistant",28,5,1,""],
+["Salem Martinez","English","Humanities","Teaching Fellow",23,1,2,""],
+["Samatha Arun","Civil and Environmental Engineering","Engineering","Teaching Fellow",20,5,2,""],
+["Samuel Halim","Civil and Environmental Engineering","Engineering","Teaching Fellow",22,4,3,""],
+["Sebastian Solarte-Caicedo","Institute of the Environment and Sustainability","Life Sciences","Teaching Fellow",26,4,3,""],
+["Shervin Nia","Chemistry and Biochemistry","Physical Sciences","Teaching Associate",20,3,3,""],
+["Thomas Lee","Mechanical and Aerospace Engineering","Engineering","Teaching Fellow",20,3,3,""],
+["Tucker Allen","Chemistry and Biochemistry","Physical Sciences","Teaching Fellow",22,5,3,""],
+["Wesleigh Gates","World Arts and Cultures / Dance","Arts and Architecture","Teaching Fellow",23,5,3,""],
+["Yasmine Krings","Asian Languages and Cultures","Humanities","Teaching Fellow",23,5,2,""],
+["Yesi Camacho Torres","Social Welfare","Public Affairs","Teaching Associate",28,3,3,""],
+["Zackary Kiebach","English","Humanities","Teaching Fellow",23,1,3,""]
+].map(r => ({name:r[0], dept:r[1], div:r[2], title:r[3], pages:r[4], art:r[5], lor:r[6], note:r[7],
+  key:r[0].toLowerCase().replace(/[^a-z0-9]+/g,"-")}));
+
+// ---------- Rubric, worded as on the scoring sheet
+const CRITERIA = [
+ {id:"c1", title:"1. Effective teaching practices", sub:"Multiple examples of effective teaching practices (e.g., student-centered learning, active learning, inclusive teaching)", guide:[
+  "Use of innovative teaching methods in the classroom, programmatic innovations in curriculum, and the impact such innovations might have at the local or national level",
+  "Teaching practices: How are in-class and out-of-class times utilized? What assignments, assessments, and learning activities help students learn? Are students engaged?",
+  "Reflection and iterative growth: How has the instructor's teaching changed over time? How has student learning evidence informed this?",
+  "Evidence should be apparent in the Statement from the nominee and the Artifacts"]},
+ {id:"c2", title:"2. Learning environment", sub:"Efforts to create a learning environment in which diverse students can succeed", guide:[
+  "Class climate: What sort of climate for learning does the instructor create? What are students' views of their learning experience, and how has this informed teaching?",
+  "Achievement of learning outcomes: What impact do courses have on learners? What is the evidence of student learning? Are there efforts to make achievement equitable?",
+  "Inclusive pedagogy and curriculum"]},
+ {id:"c3", title:"3. Impact on students or peers", sub:"e.g., played a significant role in students' eventual success, helped change majors or career plans, or shaped students' lives", guide:[
+  "Mentoring and advising: How has the instructor contributed to the broader teaching and learning communities, on and off campus, inside and outside the classroom?",
+  "Fostering student agency: How has the instructor transformed students into co-creators of knowledge?"]},
+ {id:"c4", title:"4. Efforts to improve teaching", sub:"Sought opportunities to improve their pedagogical knowledge", guide:[
+  "Participates in training outside of the mandatory (495) training course"]}
+];
+const OVERALL = {id:"o", title:"Overall rating", sub:"Overall rating of the nominee, from 1 (lowest) to 5 (most deserving of the award)", guide:[
+  "Consider the criteria above in light of the context of the discipline and department.",
+  "This may include the size, number, and diversity of courses taught, the overall impact of their teaching, and the sample evidence and activities provided."]};
+const STEPS = [1,1.5,2,2.5,3,3.5,4,4.5,5];
+const DISAGREE = 4; // points on the /25 total that flag a nominee for discussion
+
+// ---------- State
+const S = { sel: 0, mine: {}, uid: null, db: null, user: null, admin: false, canWrite: true,
+  links: {}, all: [], filter: "all", q: "", tab: "score", dirty: false, saving: false, lastSaved: null, local: false };
+
+const $ = id => document.getElementById(id);
+const el = (tag, attrs = {}, ...kids) => { const e = document.createElement(tag);
+  for (const [k, v] of Object.entries(attrs)) { if (v == null || v === false) continue;
+    if (k === "class") e.className = v; else if (k === "text") e.textContent = v;
+    else if (k.startsWith("on")) e.addEventListener(k.slice(2), v); else e.setAttribute(k, v === true ? "" : v); }
+  for (const k of kids.flat()) if (k != null) e.append(k.nodeType ? k : document.createTextNode(k)); return e; };
+const fmt = v => v == null ? "–" : (Number.isInteger(v) ? String(v) : v.toFixed(1));
+
+function entry(key) { return S.mine[key] || null; }
+function critSum(e) { if (!e || !e.c) return null; const v = e.c.filter(x => typeof x === "number"); return v.length === 4 ? v.reduce((a,b)=>a+b,0) : null; }
+function status(e) { if (!e) return "none"; const c = (e.c||[]).filter(x => typeof x === "number").length + (typeof e.o === "number" ? 1 : 0);
+  return c === 0 && !e.notes ? "none" : c === 5 ? "done" : "prog"; }
+const STATUS_LABEL = {none:"Not started", prog:"In progress", done:"Scored"};
+
+// ---------- Local fallback (only when shared saving is unavailable)
+function localLoad(){ try { const v = localStorage.getItem("dta26-scores"); if (v) S.mine = JSON.parse(v) || {}; } catch {} }
+function localSave(){ try { localStorage.setItem("dta26-scores", JSON.stringify(S.mine)); } catch {} }
+
+// ---------- Rendering: list
+function renderProgress(){
+  const done = NOMINEES.filter(n => status(entry(n.key)) === "done").length;
+  $("progText").textContent = `${done} of ${NOMINEES.length} scored`;
+  $("progBar").style.width = (done / NOMINEES.length * 100) + "%";
+}
+function renderList(){
+  const box = $("items"); box.textContent = "";
+  const q = S.q.trim().toLowerCase();
+  let shown = 0;
+  NOMINEES.forEach((n, i) => {
+    const st = status(entry(n.key));
+    if (S.filter !== "all" && st !== S.filter) return;
+    if (q && !(n.name.toLowerCase().includes(q) || n.dept.toLowerCase().includes(q) || n.div.toLowerCase().includes(q))) return;
+    shown++;
+    const tot = critSum(entry(n.key)); const o = entry(n.key)?.o;
+    box.append(el("button", {class:"item", "aria-current": i === S.sel ? "true" : "false", onclick: () => select(i)},
+      el("span", {class:"nm", text:n.name}),
+      el("span", {class:"st"}, el("span", {class:"pill " + st, text: st === "done" ? `${fmt(tot + o)} / 25` : STATUS_LABEL[st]})),
+      el("span", {class:"dp", text:n.dept})));
+  });
+  if (!shown) box.append(el("div", {class:"empty", text:"No nominees match."}));
+  renderProgress();
+}
+
+// ---------- Rendering: the open file
+function packetList(n){
+  const items = [];
+  if (n.name !== "") items.push("Department Letter");
+  if (n.key !== "christina-toma") items.push("Nominee Statement", "Teaching Philosophy");
+  for (let i = 1; i <= n.art; i++) items.push(`Teaching Artifact ${i}`);
+  for (let i = 1; i <= n.lor; i++) items.push(`Letter of Recommendation ${i}`);
+  items.push("Letter of Support");
+  return items;
+}
+function scaleFor(n, critId, idx){
+  const e = entry(n.key); const cur = critId === "o" ? e?.o : e?.c?.[idx];
+  const wrap = el("div", {class:"scale", role:"group", "aria-label": "Score"});
+  STEPS.forEach(v => wrap.append(el("button", {class: "sc" + (Number.isInteger(v) ? "" : " half"),
+    "aria-pressed": cur === v ? "true" : "false", "aria-label": `Score ${v}`, disabled: !S.canWrite,
+    onclick: () => setScore(n, critId, idx, cur === v ? null : v)}, fmt(v))));
+  if (cur != null) wrap.append(el("button", {class:"sc clear", disabled: !S.canWrite, onclick: () => setScore(n, critId, idx, null)}, "Clear"));
+  return el("div", {}, wrap, el("div", {class:"ends"}, el("span", {text:"1 = lowest evidence"}), el("span", {text:"5 = highest evidence"})));
+}
+function critBlock(n, c, idx, extra){
+  return el("section", {class: "crit" + (extra ? " overall" : "")},
+    el("div", {class:"crit-head"}, el("h3", {text:c.title})),
+    el("div", {class:"muted", style:"font-size:14px;max-width:70ch", text:c.sub}),
+    el("details", {}, el("summary", {}, "What to look for"), el("ul", {}, c.guide.map(g => el("li", {text:g})))),
+    scaleFor(n, c.id, idx));
+}
+function renderFile(){
+  const n = NOMINEES[S.sel]; const f = $("file"); f.textContent = "";
+  const e = entry(n.key); const cs = critSum(e); const o = e?.o;
+  const link = S.links[n.key];
+
+  f.append(el("div", {class:"file-head"},
+    el("div", {style:"display:flex;flex-direction:column;gap:6px;min-width:0"},
+      el("div", {class:"eyebrow", text:`Nominee ${S.sel + 1} of ${NOMINEES.length}`}),
+      el("h2", {text:n.name}),
+      el("div", {class:"facts"},
+        el("span", {}, el("b", {text:n.title})),
+        el("span", {text:n.dept}),
+        el("span", {text:n.div}))),
+    el("div", {}, el("span", {class:"pill " + status(e), text:STATUS_LABEL[status(e)]}))));
+
+  const pk = el("div", {class:"packet"},
+    el("div", {class:"row", style:"justify-content:space-between"},
+      el("div", {}, el("div", {style:"font-weight:600"}, "Nomination packet"),
+        el("div", {class:"muted", style:"font-size:13px"}, `${n.pages} pages · ${n.art} of 5 artifacts · ${n.lor} of 3 letters of recommendation`)),
+      link ? el("a", {class:"btn primary", href:link, target:"_blank", rel:"noopener"}, "Open packet ↗")
+           : el("span", {class:"muted", style:"font-size:13px"}, "Packet link not added yet")),
+    el("ol", {}, packetList(n).map(t => el("li", {text:t}))));
+  if (n.note) pk.append(el("div", {class:"flag", text:n.note}));
+  if (S.admin) {
+    const inp = el("input", {type:"url", id:"linkInput", placeholder:"Paste the shared-drive link to this packet", value: link || "", "aria-label":"Packet link"});
+    pk.append(el("div", {class:"row"}, inp, el("button", {class:"btn", onclick: () => saveLink(n, inp.value.trim())}, "Save link")),
+      el("div", {class:"muted", style:"font-size:12.5px"}, "Only you see this field. Reviewers see the Open packet button."));
+  }
+  f.append(pk);
+
+  CRITERIA.forEach((c, i) => f.append(critBlock(n, c, i, false)));
+  f.append(critBlock(n, OVERALL, 0, true));
+
+  const notes = el("textarea", {id:"notes", rows:"4", placeholder:"Strengths, concerns, evidence you want to raise in discussion", disabled: !S.canWrite});
+  notes.value = e?.notes || "";
+  notes.addEventListener("input", () => { const cur = ensure(n.key); cur.notes = notes.value; touch(); });
+  f.append(el("section", {class:"crit"}, el("h3", {}, el("label", {for:"notes"}, "Notes")), notes));
+
+  f.append(el("div", {class:"totals"},
+    el("div", {class:"tot"}, el("div", {class:"eyebrow", text:"Criteria total"}), el("div", {class:"v num", text: cs == null ? "–" : fmt(cs)}), el("div", {class:"muted", style:"font-size:12.5px", text:"out of 20"})),
+    el("div", {class:"tot"}, el("div", {class:"eyebrow", text:"Overall rating"}), el("div", {class:"v num", text: fmt(o)}), el("div", {class:"muted", style:"font-size:12.5px", text:"out of 5"})),
+    el("div", {class:"tot"}, el("div", {class:"eyebrow", text:"Total score"}), el("div", {class:"v num", text: cs == null || o == null ? "–" : fmt(cs + o)}), el("div", {class:"muted", style:"font-size:12.5px", text:"out of 25"}))));
+
+  f.append(el("div", {class:"foot"},
+    el("span", {class:"saved", id:"saved", text: saveText()}),
+    el("div", {class:"row"},
+      el("button", {class:"btn", disabled: S.sel === 0, onclick: () => select(S.sel - 1)}, "← Previous"),
+      el("button", {class:"btn primary", disabled: S.sel === NOMINEES.length - 1, onclick: () => select(S.sel + 1)}, "Next nominee →"))));
+}
+function saveText(){
+  if (!S.canWrite) return "View only";
+  if (S.saving || S.dirty) return "Saving…";
+  if (S.local) return "Saved in this browser only";
+  return S.lastSaved ? `Saved ${S.lastSaved.toLocaleTimeString([], {hour:"numeric", minute:"2-digit"})}` : "Scores save automatically";
+}
+function select(i){ S.sel = i; renderList(); renderFile(); try { localStorage.setItem("dta26-sel", String(i)); } catch {} window.scrollTo({top:0}); }
+
+// ---------- Editing and saving
+function ensure(key){ return S.mine[key] || (S.mine[key] = {c:[null,null,null,null], o:null, notes:""}); }
+function setScore(n, critId, idx, v){
+  const e = ensure(n.key);
+  if (critId === "o") e.o = v; else e.c[idx] = v;
+  touch(); renderList(); renderFile();
+}
+let saveTimer = null;
+function touch(){
+  const k = NOMINEES[S.sel].key; ensure(k).t = new Date().toISOString();
+  S.dirty = true; const s = $("saved"); if (s) s.textContent = saveText();
+  clearTimeout(saveTimer); saveTimer = setTimeout(flush, 700);
+}
+async function flush(){
+  if (!S.dirty) return;
+  if (S.saving) { saveTimer = setTimeout(flush, 400); return; }
+  S.dirty = false; S.saving = true;
+  try {
+    if (S.db && S.uid) { await S.db.doc("scores/" + S.uid).set({s: S.mine, updatedAt: new Date().toISOString()}); S.local = false; }
+    else { localSave(); S.local = true; }
+    S.lastSaved = new Date();
+  } catch (err) {
+    if (err && err.code === "invalid_argument") { S.canWrite = false; showNotice("Your access to this page is view-only, so scores can't be saved. Ask the coordinator to give you Contributor access."); renderFile(); }
+    else { S.dirty = true; showNotice("Couldn't save just now. Your scores are kept on this page and will save on your next change."); }
+  } finally { S.saving = false; const s = $("saved"); if (s) s.textContent = saveText(); }
+}
+async function saveLink(n, url){
+  if (url && !/^https:\/\//i.test(url)) { showNotice("Packet links must start with https://"); return; }
+  const next = {...S.links}; if (url) next[n.key] = url; else delete next[n.key];
+  try { await S.db.doc("packets/links").set({links: next}); S.links = next; hideNotice(); renderFile(); }
+  catch { showNotice("Couldn't save the packet link. Try again in a moment."); }
+}
+function showNotice(t){ const b = $("notice"); b.textContent = t; b.hidden = false; }
+function hideNotice(){ $("notice").hidden = true; }
+
+// ---------- Live summary (coordinator only)
+const mean = a => a.length ? a.reduce((p,q)=>p+q,0) / a.length : null;
+const r1 = v => v == null ? null : Math.round(v * 10) / 10;
+function computeSummary(){
+  const reviewers = S.all.filter(d => d.s && Object.keys(d.s).length);
+  const rows = NOMINEES.map(n => {
+    const done = reviewers.map(r => ({id:r.id, e:r.s[n.key]})).filter(x => status(x.e) === "done");
+    const totals = done.map(x => critSum(x.e) + x.e.o);
+    return { n, done, count: done.length, crit: mean(done.map(x => critSum(x.e))), overall: mean(done.map(x => x.e.o)),
+      total: mean(totals), lo: totals.length ? Math.min(...totals) : null, hi: totals.length ? Math.max(...totals) : null,
+      notes: reviewers.map(r => r.s[n.key]?.notes).filter(t => t && t.trim()) };
+  }).sort((a,b) => (b.total ?? -1) - (a.total ?? -1) || a.n.name.localeCompare(b.n.name));
+  const allDone = rows.flatMap(r => r.done.map(x => x.e));
+  return { reviewers, rows, allDone,
+    critAvg: [0,1,2,3].map(i => mean(allDone.map(e => e.c[i]))), overallAvg: mean(allDone.map(e => e.o)),
+    flagged: rows.filter(r => r.count > 1 && r.hi - r.lo >= DISAGREE) };
+}
+function statTile(label, value, sub){
+  return el("div", {class:"tile"}, el("div", {class:"eyebrow", text:label}), el("div", {class:"v num", text:value}), sub ? el("div", {class:"muted", style:"font-size:12.5px", text:sub}) : null);
+}
+function hbar(label, v, max, sub){
+  return el("div", {class:"hb"}, el("span", {class:"hb-l", text:label}),
+    el("span", {class:"hb-t"}, el("i", {style:`width:${v == null ? 0 : v / max * 100}%`})),
+    el("span", {class:"hb-v num", text: v == null ? "–" : fmt(r1(v))}), sub ? el("span", {class:"hb-s muted", text:sub}) : el("span"));
+}
+async function renderResults(){
+  const box = $("viewResults"); box.textContent = "";
+  const sm = computeSummary(); const { reviewers, rows, allDone, flagged } = sm;
+  const ps = S.user && reviewers.length ? await S.user.profiles(reviewers.map(r => r.id)) : {};
+  const nameOf = id => (ps[id] && ps[id].name) || "Reviewer";
+  const scoredOnce = rows.filter(r => r.count >= 1).length, scoredTwice = rows.filter(r => r.count >= 2).length;
+
+  box.append(el("div", {class:"row", style:"justify-content:space-between"},
+    el("div", {}, el("h2", {text:"Live summary"}),
+      el("div", {class:"muted", style:"font-size:14px"}, el("span", {class:"live"}), S.lastSync ? `Updates as reviewers save · last change ${S.lastSync.toLocaleTimeString([], {hour:"numeric", minute:"2-digit", second:"2-digit"})}` : "Updates as reviewers save")),
+    el("button", {class:"btn", onclick: () => exportCsv(reviewers, nameOf)}, "Download all scores (CSV)")));
+
+  box.append(el("div", {class:"tiles"},
+    statTile("Reviewers active", String(reviewers.length)),
+    statTile("Completed reviews", String(allDone.length), reviewers.length ? `of ${reviewers.length * NOMINEES.length} possible` : ""),
+    statTile("Nominees reviewed", `${scoredOnce} / ${NOMINEES.length}`, `${scoredTwice} by 2+ reviewers`),
+    statTile("Average total", allDone.length ? fmt(r1(mean(allDone.map(e => critSum(e) + e.o)))) : "–", "out of 25"),
+    statTile("To discuss", String(flagged.length), `totals differ by ${DISAGREE}+ points`)));
+
+  if (!reviewers.length) { box.append(el("div", {class:"empty", text:"No scores yet. This summary fills in live as reviewers score nominees."})); return; }
+
+  // Criteria and divisions, side by side
+  const divs = [...new Set(NOMINEES.map(n => n.div))].map(d => {
+    const rs = rows.filter(r => r.n.div === d); const t = rs.filter(r => r.total != null);
+    return { d, n: rs.length, reviewed: t.length, avg: mean(t.map(r => r.total)) };
+  }).sort((a,b) => (b.avg ?? -1) - (a.avg ?? -1));
+  box.append(el("div", {class:"two"},
+    el("section", {class:"card"}, el("h3", {text:"Average by criterion"}),
+      el("div", {class:"muted", style:"font-size:13px", text:"Across all completed reviews, out of 5. The lowest bar is where nominees' evidence is thinnest."}),
+      el("div", {class:"hbs"}, CRITERIA.map((c, i) => hbar(c.title.replace(/^\d\.\s*/, ""), sm.critAvg[i], 5)), hbar("Overall rating", sm.overallAvg, 5))),
+    el("section", {class:"card"}, el("h3", {text:"Average total by division"}),
+      el("div", {class:"muted", style:"font-size:13px", text:"Out of 25, among reviewed nominees."}),
+      el("div", {class:"hbs"}, divs.map(d => hbar(d.d, d.avg, 25, `${d.reviewed}/${d.n} reviewed`))))));
+
+  // Distribution of nominee average totals
+  const bins = [[5,15,"Under 15"],[15,17,"15–16.9"],[17,19,"17–18.9"],[19,21,"19–20.9"],[21,23,"21–22.9"],[23,25.01,"23–25"]];
+  const counts = bins.map(([a,b]) => rows.filter(r => r.total != null && r.total >= a && r.total < b).length);
+  const cmax = Math.max(1, ...counts);
+  box.append(el("section", {class:"card"}, el("h3", {text:"Spread of nominee averages"}),
+    el("div", {class:"muted", style:"font-size:13px", text:"How many nominees fall in each band of average total score (out of 25)."}),
+    el("div", {class:"hist"}, bins.map(([,,lab], i) => el("div", {class:"hcol"},
+      el("span", {class:"hnum num", text:String(counts[i])}),
+      el("span", {class:"hbar", style:`height:${counts[i] / cmax * 100}%`}),
+      el("span", {class:"hlab", text:lab}))))));
+
+  // Discussion brief (Claude, on request)
+  const brief = el("section", {class:"card"}, el("div", {class:"row", style:"justify-content:space-between"},
+      el("div", {}, el("h3", {text:"Discussion brief"}), el("div", {class:"muted", style:"font-size:13px", text:"A short written summary of where reviewers agree and disagree, drawn from the scores and reviewer notes. Generated only when you click."})),
+      el("button", {class:"btn primary", id:"briefBtn", disabled: S.briefBusy, onclick: makeBrief}, S.briefBusy ? "Writing…" : (S.brief ? "Refresh brief" : "Write brief"))));
+  if (S.brief) brief.append(el("div", {class:"brief", text:S.brief}), el("div", {class:"muted", style:"font-size:12.5px", text:`Written ${S.briefAt.toLocaleTimeString([], {hour:"numeric", minute:"2-digit"})} from ${S.briefCount} completed reviews. Check it against the scores before sharing.`}));
+  if (S.briefErr) brief.append(el("div", {class:"flag", text:S.briefErr}));
+  box.append(brief);
+
+  // Ranking
+  const tb = el("tbody");
+  rows.forEach((r, i) => {
+    const disagree = r.count > 1 && r.hi - r.lo >= DISAGREE;
+    tb.append(el("tr", {},
+      el("td", {class:"r num", text: r.total == null ? "" : String(i + 1)}),
+      el("td", {}, el("button", {class:"btn", style:"padding:2px 8px;border:0;background:none;font-weight:600", onclick: () => { select(NOMINEES.indexOf(r.n)); showTab("score"); }}, r.n.name)),
+      el("td", {class:"muted", text:r.n.dept}),
+      el("td", {class:"r num", text:String(r.count)}),
+      el("td", {class:"r num", text:fmt(r1(r.crit))}),
+      el("td", {class:"r num", text:fmt(r1(r.overall))}),
+      el("td", {class:"r num", style:"font-weight:600", text:fmt(r1(r.total))}),
+      el("td", {}, r.total == null ? "" : el("span", {class:"spark", title:`Range ${fmt(r.lo)}–${fmt(r.hi)}`},
+        el("i", {style:`left:${(r.lo-5)/20*100}%;width:${Math.max((r.hi-r.lo)/20*100, 2)}%`}), el("b", {style:`left:calc(${(r.total-5)/20*100}% - 1px)`}))),
+      el("td", {class:"num", text: r.total == null ? "" : `${fmt(r.lo)}–${fmt(r.hi)}`}),
+      el("td", {}, disagree ? el("span", {class:"pill prog", text:"Discuss"}) : "")));
+  });
+  box.append(el("h3", {text:"Ranking"}), el("div", {class:"tablewrap"}, el("table", {},
+    el("thead", {}, el("tr", {}, ["#", "Nominee", "Department", "Reviews", "Criteria /20", "Overall /5", "Total /25", "Spread", "Range", ""].map((h, i) =>
+      el("th", {class: [0,3,4,5,6].includes(i) ? "r" : null, text:h})))), tb)));
+
+  const prog = el("tbody");
+  reviewers.forEach(r => { const d = NOMINEES.filter(n => status(r.s[n.key]) === "done").length;
+    prog.append(el("tr", {}, el("td", {text: nameOf(r.id)}), el("td", {class:"r num", text:`${d} / ${NOMINEES.length}`}),
+      el("td", {}, el("span", {class:"bar", style:"display:block;width:160px"}, el("i", {style:`width:${d / NOMINEES.length * 100}%`}))))); });
+  box.append(el("h3", {text:"Reviewer progress"}), el("div", {class:"tablewrap"}, el("table", {},
+    el("thead", {}, el("tr", {}, el("th", {text:"Reviewer"}), el("th", {class:"r", text:"Scored"}), el("th", {text:""}))), prog)));
+}
+async function makeBrief(){
+  const sample = await window.claude?.use?.("sample");
+  if (!sample) { S.briefErr = "Writing a brief isn't available in this view."; renderResults(); return; }
+  const sm = computeSummary();
+  const data = sm.rows.filter(r => r.count).map(r => ({nominee:r.n.name, department:r.n.dept, division:r.n.div, reviews:r.count,
+    average_total_of_25:r1(r.total), lowest_total:r.lo, highest_total:r.hi, reviewers_disagree: r.count > 1 && r.hi - r.lo >= DISAGREE,
+    packet_note: r.n.note || undefined, reviewer_notes: r.notes }));
+  const prompt = `You are helping the coordinator of a university teaching-award committee prepare for its deliberation meeting.
+Scoring: four criteria (effective teaching practices; learning environment where diverse students succeed; impact on students or peers; efforts to improve teaching) each 1-5, plus an overall rating 1-5, for a total out of 25.
+Committee-wide criterion averages (out of 5): ${sm.critAvg.map(v => fmt(r1(v))).join(", ")}; overall ${fmt(r1(sm.overallAvg))}.
+Per-nominee data (JSON): ${JSON.stringify(data)}
+
+Write a brief in plain text, no markdown symbols, under 300 words, with these labelled parts on their own lines:
+Leading nominees: the strongest by average, with one clause each on what reviewers' notes highlight (only from the notes given).
+Needs discussion: nominees where reviewers disagree, and what the notes suggest about why.
+Patterns: one or two observations across criteria or divisions.
+Gaps: nominees with too few reviews or incomplete packets.
+Use only the data provided. If notes are empty for a nominee, say nothing about their content. Do not invent facts.`;
+  S.briefBusy = true; S.briefErr = null; renderResults();
+  try { const res = await sample(prompt, {modelTier:"default", cache:false}); S.brief = res.text.trim(); S.briefAt = new Date(); S.briefCount = sm.allDone.length; }
+  catch (err) { S.briefErr = err && err.code === "not_granted" ? "Brief writing wasn't allowed. You can turn it on from the page's permissions." : err && err.code === "rate_limited" ? "Too many requests just now. Try again in a minute." : "Couldn't write the brief. Try again."; }
+  finally { S.briefBusy = false; renderResults(); }
+}
+async function exportCsv(reviewers, nameOf){
+  const q = v => { const s = v == null ? "" : String(v); return /[",\n]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s; };
+  const lines = [["Reviewer","Nominee","Department","Division","Effective teaching practices","Learning environment","Impact on students or peers","Efforts to improve teaching","Criteria total","Overall rating","Total score","Notes"].join(",")];
+  reviewers.forEach(r => NOMINEES.forEach(n => { const e = r.s[n.key]; if (!e) return; const cs = critSum(e);
+    lines.push([nameOf(r.id), n.name, n.dept, n.div, ...(e.c || []), cs, e.o, cs != null && e.o != null ? cs + e.o : "", e.notes].map(q).join(",")); }));
+  const dl = await window.claude?.use?.("downloads");
+  if (!dl) { showNotice("Downloading isn't available in this view. Open the page on claude.ai to export scores."); return; }
+  try { await dl.save({filename:"DTA 2026 TA scores.csv", data: new Blob([lines.join("\n")], {type:"text/csv"})}); } catch {}
+}
+
+// ---------- Tabs and filters
+function showTab(t){ S.tab = t;
+  $("tabScore").setAttribute("aria-selected", t === "score"); $("tabResults").setAttribute("aria-selected", t === "results");
+  $("viewScore").hidden = t !== "score"; $("viewResults").hidden = t !== "results";
+  if (t === "results") renderResults(); }
+$("tabScore").onclick = () => showTab("score");
+$("tabResults").onclick = () => showTab("results");
+$("q").addEventListener("input", e => { S.q = e.target.value; renderList(); });
+document.querySelectorAll(".chip").forEach(c => c.addEventListener("click", () => {
+  S.filter = c.dataset.f; document.querySelectorAll(".chip").forEach(x => x.setAttribute("aria-pressed", x === c)); renderList(); }));
+
+// ---------- Boot: render at once, then connect to shared saving
+try { const v = parseInt(localStorage.getItem("dta26-sel"), 10); if (v >= 0 && v < NOMINEES.length) S.sel = v; } catch {}
+renderList(); renderFile();
+
+(async () => {
+  const [db, user] = await Promise.all([window.claude?.use?.("db") ?? null, window.claude?.use?.("user") ?? null]);
+  S.db = db; S.user = user;
+  const uid = user ? await user.id() : null;
+  if (!db || !uid) {
+    S.local = true; localLoad(); renderList(); renderFile();
+    showNotice("Shared saving isn't available in this view, so scores are kept in this browser only. Open the page on claude.ai while signed in to save them for the committee.");
+    return;
+  }
+  S.uid = uid;
+  const me = await user.me(); $("who").textContent = me.name ? `Signed in as ${me.name}` : "";
+  S.admin = await user.canEdit();
+  if (S.admin) $("tabResults").hidden = false;
+
+  let first = true;
+  db.doc("scores/" + uid).onSnapshot(snap => {
+    if (snap.metadata.hasPendingWrites) return;
+    if (first || (!S.dirty && !S.saving)) { const d = snap.exists ? snap.data() : null; S.mine = d && d.s ? JSON.parse(JSON.stringify(d.s)) : {}; first = false; renderList(); renderFile(); }
+  }, () => showNotice("Lost the connection to saved scores. Reload the page to reconnect."));
+  db.doc("packets/links").onSnapshot(snap => { const d = snap.exists ? snap.data() : null; S.links = (d && d.links) || {}; if (S.tab === "score") renderFile(); });
+  if (S.admin) db.collection("scores").onSnapshot(qs => { S.all = qs.docs.map(d => ({id:d.id, s:(d.data() || {}).s || {}})); S.lastSync = new Date(); if (S.tab === "results") renderResults(); });
+})();
+</script>
