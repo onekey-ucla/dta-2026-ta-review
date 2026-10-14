@@ -168,6 +168,7 @@ tr.agree td{background:var(--good-soft)}
       </div>
       <div class="row">
         <input id="reviewerName" type="text" placeholder="Your name" aria-label="Your name" autocomplete="name" style="width:160px">
+        <a class="btn" href="totals.html">Rubric totals</a>
         <button class="btn" id="downloadScores" type="button">Download score sheet</button>
         <label class="btn" style="cursor:pointer">Add a reviewer's sheet<input id="importScores" type="file" accept=".tsv,.txt,.csv" hidden></label>
       </div>
@@ -175,11 +176,6 @@ tr.agree td{background:var(--good-soft)}
   </header>
 
   <div id="notice" class="notice" hidden></div>
-
-  <nav class="tabs" role="tablist">
-    <button class="tab" role="tab" id="tabScore" aria-selected="true">Score nominees</button>
-    <button class="tab" role="tab" id="tabResults" aria-selected="false" hidden>Live summary</button>
-  </nav>
 
   <section id="viewScore" class="desk">
     <aside class="panel list" aria-label="Nominees">
@@ -197,83 +193,10 @@ tr.agree td{background:var(--good-soft)}
     <article class="panel viewer" id="viewer" aria-label="Nomination packet"></article>
     <article class="panel file" id="file" aria-live="polite"></article>
   </section>
-
-  <section id="viewResults" class="panel results" hidden></section>
 </div>
 
+<script src="portal.js"></script>
 <script>
-// ---------- Nominees: name, department, division, title, packet pages, artifacts (of 5), LORs (of 3), note
-const NOMINEES = [
-["Arpit Gaind","Undergraduate Education","Undergraduate Education","Teaching Fellow",27,5,3,""],
-["Ashley Hannah","Art","Arts and Architecture","Teaching Assistant",24,3,2,""],
-["Brendan Russ","Chemical and Biomolecular Engineering","Engineering","Teaching Fellow",21,5,3,""],
-["Charlotte Bryant","Nursing","Nursing","Teaching Associate",26,4,2,""],
-["Christian Gerard Capuno","Integrative Biology and Physiology","Life Sciences","Teaching Assistant",23,5,3,""],
-["Christina Toma","Education","Education & Information Studies","Teaching Associate",10,0,3,"Packet incomplete: Nominee Statement, Teaching Philosophy and all Teaching Artifacts could not be retrieved."],
-["Daisy Mugodzeri","Civil and Environmental Engineering","Engineering","Teaching Assistant",24,5,3,""],
-["Dominique Stumbaugh","Atmospheric and Oceanic Sciences","Physical Sciences","Teaching Fellow",20,5,3,""],
-["Dzmitry Vaido","Physics and Astronomy","Physical Sciences","Teaching Fellow",25,3,3,""],
-["Eilam Morag","Electrical Engineering","Engineering","Teaching Fellow",23,5,3,""],
-["Elayne Stecher","Political Science","Social Sciences","Teaching Fellow",31,4,3,""],
-["Gabriella Sigal","Integrative Biology and Physiology","Life Sciences","Teaching Assistant",23,4,3,""],
-["Garret May","Materials Science and Engineering","Engineering","Teaching Fellow",24,5,3,""],
-["Gillian Haigh","Art","Arts and Architecture","Teaching Assistant",21,4,3,""],
-["Glenn Nurwono","Chemistry and Biochemistry","Physical Sciences","Teaching Fellow",24,4,3,"Teaching Artifact 1 (syllabus) is being added to the packet."],
-["Gloria Hyun","Civil and Environmental Engineering","Engineering","Teaching Assistant",18,2,2,""],
-["Hannah Widmaier","Philosophy","Humanities","Teaching Associate",19,5,1,""],
-["Isaias Roberson","Molecular, Cell, and Developmental Biology","Life Sciences","Teaching Assistant",24,4,3,""],
-["Joshua Goetz","Political Science","Social Sciences","Teaching Assistant",19,5,2,""],
-["Katarina Yuan","English","Humanities","Teaching Fellow",24,1,2,""],
-["Katherine Hernandez","Institute of the Environment and Sustainability","Life Sciences","Teaching Fellow",21,3,2,""],
-["Katherine Smock","Sociology","Social Sciences","Teaching Assistant",19,5,3,""],
-["Marianne Gutierrez","Nursing","Nursing","Teaching Fellow",18,3,2,""],
-["Maryam Ghamarchehreh","Civil and Environmental Engineering","Engineering","Teaching Assistant",56,4,2,""],
-["Michelle De Luna","Geography","Social Sciences","Teaching Fellow",23,5,3,""],
-["Min Kyu Lee","Chemistry and Biochemistry","Physical Sciences","Teaching Assistant",23,3,2,""],
-["Nallely Valenzuela","Political Science","Social Sciences","Teaching Fellow",21,4,2,""],
-["Narayan Gopinathan","Institute of the Environment and Sustainability","Physical Sciences","Teaching Assistant",87,5,3,""],
-["Nicholas Hu","Mathematics","Physical Sciences","Teaching Fellow",20,3,3,""],
-["Parnian Hemmati","Mechanical and Aerospace Engineering","Engineering","Teaching Fellow",21,5,3,""],
-["Passion Lord","Education","Education & Information Studies","Teaching Associate",25,3,3,""],
-["Raquel Zandomeneghi","Spanish and Portuguese","Humanities","Teaching Fellow",23,5,3,""],
-["Roshini Agarwal","Art","Arts and Architecture","Teaching Assistant",28,5,1,""],
-["Salem Martinez","English","Humanities","Teaching Fellow",23,1,2,""],
-["Samatha Arun","Civil and Environmental Engineering","Engineering","Teaching Fellow",20,5,2,""],
-["Samuel Halim","Civil and Environmental Engineering","Engineering","Teaching Fellow",22,4,3,""],
-["Sebastian Solarte-Caicedo","Institute of the Environment and Sustainability","Life Sciences","Teaching Fellow",26,4,3,""],
-["Shervin Nia","Chemistry and Biochemistry","Physical Sciences","Teaching Associate",20,3,3,""],
-["Thomas Lee","Mechanical and Aerospace Engineering","Engineering","Teaching Fellow",20,3,3,""],
-["Tucker Allen","Chemistry and Biochemistry","Physical Sciences","Teaching Fellow",22,5,3,""],
-["Wesleigh Gates","World Arts and Cultures / Dance","Arts and Architecture","Teaching Fellow",23,5,3,""],
-["Yasmine Krings","Asian Languages and Cultures","Humanities","Teaching Fellow",23,5,2,""],
-["Yesi Camacho Torres","Social Welfare","Public Affairs","Teaching Associate",28,3,3,""],
-["Zackary Kiebach","English","Humanities","Teaching Fellow",23,1,3,""]
-].map(r => ({name:r[0], dept:r[1], div:r[2], title:r[3], pages:r[4], art:r[5], lor:r[6], note:r[7],
-  key:r[0].toLowerCase().replace(/[^a-z0-9]+/g,"-")}));
-
-// ---------- Rubric, worded as on the scoring sheet
-const CRITERIA = [
- {id:"c1", title:"1. Effective teaching practices", sub:"Multiple examples of effective teaching practices (e.g., student-centered learning, active learning, inclusive teaching)", guide:[
-  "Use of innovative teaching methods in the classroom, programmatic innovations in curriculum, and the impact such innovations might have at the local or national level",
-  "Teaching practices: How are in-class and out-of-class times utilized? What assignments, assessments, and learning activities help students learn? Are students engaged?",
-  "Reflection and iterative growth: How has the instructor's teaching changed over time? How has student learning evidence informed this?",
-  "Evidence should be apparent in the Statement from the nominee and the Artifacts"]},
- {id:"c2", title:"2. Learning environment", sub:"Efforts to create a learning environment in which diverse students can succeed", guide:[
-  "Class climate: What sort of climate for learning does the instructor create? What are students' views of their learning experience, and how has this informed teaching?",
-  "Achievement of learning outcomes: What impact do courses have on learners? What is the evidence of student learning? Are there efforts to make achievement equitable?",
-  "Inclusive pedagogy and curriculum"]},
- {id:"c3", title:"3. Impact on students or peers", sub:"e.g., played a significant role in students' eventual success, helped change majors or career plans, or shaped students' lives", guide:[
-  "Mentoring and advising: How has the instructor contributed to the broader teaching and learning communities, on and off campus, inside and outside the classroom?",
-  "Fostering student agency: How has the instructor transformed students into co-creators of knowledge?"]},
- {id:"c4", title:"4. Efforts to improve teaching", sub:"Sought opportunities to improve their pedagogical knowledge", guide:[
-  "Participates in training outside of the mandatory (495) training course"]}
-];
-const OVERALL = {id:"o", title:"Overall rating", sub:"Overall rating of the nominee, from 1 (lowest) to 5 (most deserving of the award)", guide:[
-  "Consider the criteria above in light of the context of the discipline and department.",
-  "This may include the size, number, and diversity of courses taught, the overall impact of their teaching, and the sample evidence and activities provided."]};
-const STEPS = [1,2,3,4,5];
-const DISAGREE = 4; // points on the /25 total that flag a nominee for discussion
-
 // ---------- State
 const S = { sel: 0, mine: {}, uid: null, db: null, user: null, admin: false, canWrite: true,
   links: {}, all: [], book: {}, reviewer: "", filter: "all", q: "", tab: "score", dirty: false, saving: false, lastSaved: null, local: false };
@@ -515,135 +438,6 @@ async function saveLink(n, url){
 function showNotice(t){ const b = $("notice"); b.textContent = t; b.hidden = false; }
 function hideNotice(){ $("notice").hidden = true; }
 
-// ---------- Live summary (coordinator only)
-const mean = a => a.length ? a.reduce((p,q)=>p+q,0) / a.length : null;
-const r1 = v => v == null ? null : Math.round(v * 10) / 10;
-function computeSummary(){
-  const reviewers = S.all.filter(d => d.s && Object.keys(d.s).length);
-  const rows = NOMINEES.map(n => {
-    const done = reviewers.map(r => ({id:r.id, e:r.s[n.key]})).filter(x => status(x.e) === "done");
-    const totals = done.map(x => critSum(x.e) + x.e.o);
-    return { n, done, count: done.length, crit: mean(done.map(x => critSum(x.e))), overall: mean(done.map(x => x.e.o)),
-      total: mean(totals), lo: totals.length ? Math.min(...totals) : null, hi: totals.length ? Math.max(...totals) : null,
-      notes: reviewers.map(r => r.s[n.key]?.notes).filter(t => t && t.trim()) };
-  }).sort((a,b) => (b.total ?? -1) - (a.total ?? -1) || a.n.name.localeCompare(b.n.name));
-  const allDone = rows.flatMap(r => r.done.map(x => x.e));
-  return { reviewers, rows, allDone,
-    critAvg: [0,1,2,3].map(i => mean(allDone.map(e => e.c[i]))), overallAvg: mean(allDone.map(e => e.o)),
-    flagged: rows.filter(r => r.count > 1 && r.hi - r.lo >= DISAGREE) };
-}
-function statTile(label, value, sub){
-  return el("div", {class:"tile"}, el("div", {class:"eyebrow", text:label}), el("div", {class:"v num", text:value}), sub ? el("div", {class:"muted", style:"font-size:12.5px", text:sub}) : null);
-}
-function hbar(label, v, max, sub){
-  return el("div", {class:"hb"}, el("span", {class:"hb-l", text:label}),
-    el("span", {class:"hb-t"}, el("i", {style:`width:${v == null ? 0 : v / max * 100}%`})),
-    el("span", {class:"hb-v num", text: v == null ? "–" : fmt(r1(v))}), sub ? el("span", {class:"hb-s muted", text:sub}) : el("span"));
-}
-async function renderResults(){
-  const box = $("viewResults"); box.textContent = "";
-  const sm = computeSummary(); const { reviewers, rows, allDone, flagged } = sm;
-  const ps = S.user && reviewers.length ? await S.user.profiles(reviewers.map(r => r.id)) : {};
-  const nameOf = id => (ps[id] && ps[id].name) || "Reviewer";
-  const scoredOnce = rows.filter(r => r.count >= 1).length, scoredTwice = rows.filter(r => r.count >= 2).length;
-
-  box.append(el("div", {class:"row", style:"justify-content:space-between"},
-    el("div", {}, el("h2", {text:"Live summary"}),
-      el("div", {class:"muted", style:"font-size:14px"}, el("span", {class:"live"}), S.lastSync ? `Updates as reviewers save · last change ${S.lastSync.toLocaleTimeString([], {hour:"numeric", minute:"2-digit", second:"2-digit"})}` : "Updates as reviewers save")),
-    el("button", {class:"btn", onclick: () => exportCsv(reviewers, nameOf)}, "Download all scores (CSV)")));
-
-  box.append(el("div", {class:"tiles"},
-    statTile("Reviewers active", String(reviewers.length)),
-    statTile("Completed reviews", String(allDone.length), reviewers.length ? `of ${reviewers.length * NOMINEES.length} possible` : ""),
-    statTile("Nominees reviewed", `${scoredOnce} / ${NOMINEES.length}`, `${scoredTwice} by 2+ reviewers`),
-    statTile("Average total", allDone.length ? fmt(r1(mean(allDone.map(e => critSum(e) + e.o)))) : "–", "out of 25"),
-    statTile("To discuss", String(flagged.length), `totals differ by ${DISAGREE}+ points`)));
-
-  if (!reviewers.length) { box.append(el("div", {class:"empty", text:"No scores yet. This summary fills in live as reviewers score nominees."})); return; }
-
-  // Criteria and divisions, side by side
-  const divs = [...new Set(NOMINEES.map(n => n.div))].map(d => {
-    const rs = rows.filter(r => r.n.div === d); const t = rs.filter(r => r.total != null);
-    return { d, n: rs.length, reviewed: t.length, avg: mean(t.map(r => r.total)) };
-  }).sort((a,b) => (b.avg ?? -1) - (a.avg ?? -1));
-  box.append(el("div", {class:"two"},
-    el("section", {class:"card"}, el("h3", {text:"Average by criterion"}),
-      el("div", {class:"muted", style:"font-size:13px", text:"Across all completed reviews, out of 5. The lowest bar is where nominees' evidence is thinnest."}),
-      el("div", {class:"hbs"}, CRITERIA.map((c, i) => hbar(c.title.replace(/^\d\.\s*/, ""), sm.critAvg[i], 5)), hbar("Overall rating", sm.overallAvg, 5))),
-    el("section", {class:"card"}, el("h3", {text:"Average total by division"}),
-      el("div", {class:"muted", style:"font-size:13px", text:"Out of 25, among reviewed nominees."}),
-      el("div", {class:"hbs"}, divs.map(d => hbar(d.d, d.avg, 25, `${d.reviewed}/${d.n} reviewed`))))));
-
-  // Distribution of nominee average totals
-  const bins = [[5,15,"Under 15"],[15,17,"15–16.9"],[17,19,"17–18.9"],[19,21,"19–20.9"],[21,23,"21–22.9"],[23,25.01,"23–25"]];
-  const counts = bins.map(([a,b]) => rows.filter(r => r.total != null && r.total >= a && r.total < b).length);
-  const cmax = Math.max(1, ...counts);
-  box.append(el("section", {class:"card"}, el("h3", {text:"Spread of nominee averages"}),
-    el("div", {class:"muted", style:"font-size:13px", text:"How many nominees fall in each band of average total score (out of 25)."}),
-    el("div", {class:"hist"}, bins.map(([,,lab], i) => el("div", {class:"hcol"},
-      el("span", {class:"hnum num", text:String(counts[i])}),
-      el("span", {class:"hbar", style:`height:${counts[i] / cmax * 100}%`}),
-      el("span", {class:"hlab", text:lab}))))));
-
-  // Discussion brief (Claude, on request)
-  const brief = el("section", {class:"card"}, el("div", {class:"row", style:"justify-content:space-between"},
-      el("div", {}, el("h3", {text:"Discussion brief"}), el("div", {class:"muted", style:"font-size:13px", text:"A short written summary of where reviewers agree and disagree, drawn from the scores and reviewer notes. Generated only when you click."})),
-      el("button", {class:"btn primary", id:"briefBtn", disabled: S.briefBusy, onclick: makeBrief}, S.briefBusy ? "Writing…" : (S.brief ? "Refresh brief" : "Write brief"))));
-  if (S.brief) brief.append(el("div", {class:"brief", text:S.brief}), el("div", {class:"muted", style:"font-size:12.5px", text:`Written ${S.briefAt.toLocaleTimeString([], {hour:"numeric", minute:"2-digit"})} from ${S.briefCount} completed reviews. Check it against the scores before sharing.`}));
-  if (S.briefErr) brief.append(el("div", {class:"flag", text:S.briefErr}));
-  box.append(brief);
-
-  // Ranking
-  const tb = el("tbody");
-  rows.forEach((r, i) => {
-    const disagree = r.count > 1 && r.hi - r.lo >= DISAGREE;
-    tb.append(el("tr", {class: disagree ? "mismatch" : (r.count > 1 ? "agree" : "")},
-      el("td", {class:"r num", text: r.total == null ? "" : String(i + 1)}),
-      el("td", {}, el("button", {class:"btn", style:"padding:2px 8px;border:0;background:none;font-weight:600", onclick: () => { select(NOMINEES.indexOf(r.n)); showTab("score"); }}, r.n.name)),
-      el("td", {class:"muted", text:r.n.dept}),
-      el("td", {class:"r num", text:String(r.count)}),
-      el("td", {class:"r num", text:fmt(r1(r.crit))}),
-      el("td", {class:"r num", text:fmt(r1(r.overall))}),
-      el("td", {class:"r num", style:"font-weight:600", text:fmt(r1(r.total))}),
-      el("td", {}, r.total == null ? "" : el("span", {class:"spark", title:`Range ${fmt(r.lo)}–${fmt(r.hi)}`},
-        el("i", {style:`left:${(r.lo-5)/20*100}%;width:${Math.max((r.hi-r.lo)/20*100, 2)}%`}), el("b", {style:`left:calc(${(r.total-5)/20*100}% - 1px)`}))),
-      el("td", {class:"num", text: r.total == null ? "" : `${fmt(r.lo)}–${fmt(r.hi)}`}),
-      el("td", {}, disagree ? el("span", {class:"pill prog", text:"Discuss"}) : "")));
-  });
-  box.append(el("h3", {text:"Ranking"}), el("div", {class:"tablewrap"}, el("table", {},
-    el("thead", {}, el("tr", {}, ["#", "Nominee", "Department", "Reviews", "Criteria /20", "Overall /5", "Total /25", "Spread", "Range", ""].map((h, i) =>
-      el("th", {class: [0,3,4,5,6].includes(i) ? "r" : null, text:h})))), tb)));
-
-  const prog = el("tbody");
-  reviewers.forEach(r => { const d = NOMINEES.filter(n => status(r.s[n.key]) === "done").length;
-    prog.append(el("tr", {}, el("td", {text: nameOf(r.id)}), el("td", {class:"r num", text:`${d} / ${NOMINEES.length}`}),
-      el("td", {}, el("span", {class:"bar", style:"display:block;width:160px"}, el("i", {style:`width:${d / NOMINEES.length * 100}%`}))))); });
-  box.append(el("h3", {text:"Reviewer progress"}), el("div", {class:"tablewrap"}, el("table", {},
-    el("thead", {}, el("tr", {}, el("th", {text:"Reviewer"}), el("th", {class:"r", text:"Scored"}), el("th", {text:""}))), prog)));
-}
-async function makeBrief(){
-  const sample = await window.claude?.use?.("sample");
-  if (!sample) { S.briefErr = "Writing a brief isn't available in this view."; renderResults(); return; }
-  const sm = computeSummary();
-  const data = sm.rows.filter(r => r.count).map(r => ({nominee:r.n.name, department:r.n.dept, division:r.n.div, reviews:r.count,
-    average_total_of_25:r1(r.total), lowest_total:r.lo, highest_total:r.hi, reviewers_disagree: r.count > 1 && r.hi - r.lo >= DISAGREE,
-    packet_note: r.n.note || undefined, reviewer_notes: r.notes }));
-  const prompt = `You are helping the coordinator of a university teaching-award committee prepare for its deliberation meeting.
-Scoring: four criteria (effective teaching practices; learning environment where diverse students succeed; impact on students or peers; efforts to improve teaching) each 1-5, plus an overall rating 1-5, for a total out of 25.
-Committee-wide criterion averages (out of 5): ${sm.critAvg.map(v => fmt(r1(v))).join(", ")}; overall ${fmt(r1(sm.overallAvg))}.
-Per-nominee data (JSON): ${JSON.stringify(data)}
-
-Write a brief in plain text, no markdown symbols, under 300 words, with these labelled parts on their own lines:
-Leading nominees: the strongest by average, with one clause each on what reviewers' notes highlight (only from the notes given).
-Needs discussion: nominees where reviewers disagree, and what the notes suggest about why.
-Patterns: one or two observations across criteria or divisions.
-Gaps: nominees with too few reviews or incomplete packets.
-Use only the data provided. If notes are empty for a nominee, say nothing about their content. Do not invent facts.`;
-  S.briefBusy = true; S.briefErr = null; renderResults();
-  try { const res = await sample(prompt, {modelTier:"default", cache:false}); S.brief = res.text.trim(); S.briefAt = new Date(); S.briefCount = sm.allDone.length; }
-  catch (err) { S.briefErr = err && err.code === "not_granted" ? "Brief writing wasn't allowed. You can turn it on from the page's permissions." : err && err.code === "rate_limited" ? "Too many requests just now. Try again in a minute." : "Couldn't write the brief. Try again."; }
-  finally { S.briefBusy = false; renderResults(); }
-}
 function cell(v){ const s = v == null ? "" : String(v); return /[\t"\n]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s; }
 function reviewerRows(){
   const shared = (S.all || []).filter(d => d.s && Object.keys(d.s).length);
@@ -722,12 +516,6 @@ function importScoreSheet(file){
 }
 
 // ---------- Tabs and filters
-function showTab(t){ S.tab = t;
-  $("tabScore").setAttribute("aria-selected", t === "score"); $("tabResults").setAttribute("aria-selected", t === "results");
-  $("viewScore").hidden = t !== "score"; $("viewResults").hidden = t !== "results";
-  if (t === "results") renderResults(); }
-$("tabScore").onclick = () => showTab("score");
-$("tabResults").onclick = () => showTab("results");
 $("downloadScores").onclick = downloadScoreSheet;
 $("reviewerName").addEventListener("change", e => setReviewer(e.target.value));
 $("importScores").addEventListener("change", e => { const file = e.target.files && e.target.files[0]; e.target.value = ""; if (file) importScoreSheet(file); });
@@ -746,7 +534,6 @@ renderList(); renderFile();
   const uid = user ? await user.id() : null;
   if (!db || !uid) {
     S.local = true;
-    $("tabResults").hidden = false;
     if (!S.reviewer) showNotice("Enter your name above. Scores are saved in this browser under that name.");
     else hideNotice();
     renderList(); renderFile();
@@ -755,7 +542,6 @@ renderList(); renderFile();
   S.uid = uid;
   const me = await user.me(); $("who").textContent = me.name ? `Signed in as ${me.name}` : "";
   S.admin = await user.canEdit();
-  if (S.admin) $("tabResults").hidden = false;
 
   let first = true;
   db.doc("scores/" + uid).onSnapshot(snap => {
@@ -769,8 +555,7 @@ renderList(); renderFile();
     renderList();
     const active = document.activeElement;
     if (active && (active.tagName === "TEXTAREA" || active.tagName === "INPUT")) return;
-    if (S.tab === "score") renderFile();
-    if (S.tab === "results") renderResults();
+    renderFile();
   });
 })();
 </script>
