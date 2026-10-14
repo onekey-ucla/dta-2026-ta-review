@@ -53,7 +53,10 @@ tr.agree td{background:var(--good-soft)}
 .pill.mismatch{background:var(--crit);color:#fff}
 .empty{padding:24px;color:var(--muted);text-align:center}
 .bar{height:8px;border-radius:99px;background:var(--sunk);border:1px solid var(--line);overflow:hidden;display:block;width:160px}
-.bar i{display:block;height:100%;background:var(--good)}
+td.notes{white-space:normal;min-width:200px}
+.who{display:flex;flex-direction:column;gap:2px}
+.who b{font-weight:600}
+.num.bad{color:var(--crit);font-weight:700}
 </style>
 
 <div class="wrap">
@@ -140,11 +143,41 @@ function render(){
       el("td", {class:"r num", text:fmt(r1(r.overall))}),
       el("td", {class:"r num", style:"font-weight:700", text:fmt(r1(r.total))}),
       el("td", {class:"num", text: r.total == null ? "" : `${fmt(r.lo)}–${fmt(r.hi)}`}),
+      el("td", {}, r.done.length ? el("div", {class:"who"}, r.done.map(x => el("div", {},
+        el("b", {text:x.name}), " ", el("span", {class:"num" + (disagree ? " bad" : ""), text:fmt(critSum(x.e) + x.e.o)})))) : ""),
       el("td", {}, disagree ? el("span", {class:"pill mismatch", text:`Differ by ${r.hi - r.lo}`}) : "")));
   });
   box.append(el("h3", {text:"Ranking"}), el("div", {class:"tablewrap"}, el("table", {},
-    el("thead", {}, el("tr", {}, ["#","Nominee","Department","Reviews","Criteria /20","Overall /5","Total /25","Range",""].map((h,i) =>
+    el("thead", {}, el("tr", {}, ["#","Nominee","Department","Reviews","Criteria /20","Overall /5","Total /25","Range","Reviewer totals",""].map((h,i) =>
       el("th", {class:[0,3,4,5,6].includes(i) ? "r" : null, text:h})))), tb)));
+  const detail = el("tbody");
+  const flagged = new Set(sm.flagged.map(r => r.n.key));
+  NOMINEES.forEach(n => {
+    people.forEach(p => {
+      const e = p.s[n.key]; if (!e) return;
+      const any = (e.c || []).some(x => typeof x === "number") || typeof e.o === "number" || (e.notes && e.notes.trim());
+      if (!any) return;
+      const done = status(e) === "done";
+      const cs = critSum(e);
+      detail.append(el("tr", {class: flagged.has(n.key) ? "mismatch" : ""},
+        el("td", {}, el("b", {text:p.name})),
+        el("td", {}, el("a", {href:"index.html", text:n.name})),
+        el("td", {class:"muted", text:n.dept}),
+        el("td", {class:"r num", text:fmt(e.c?.[0])}),
+        el("td", {class:"r num", text:fmt(e.c?.[1])}),
+        el("td", {class:"r num", text:fmt(e.c?.[2])}),
+        el("td", {class:"r num", text:fmt(e.c?.[3])}),
+        el("td", {class:"r num", text:fmt(cs)}),
+        el("td", {class:"r num", text:fmt(e.o)}),
+        el("td", {class:"r num", style:"font-weight:700", text: done ? fmt(cs + e.o) : "–"}),
+        el("td", {class:"notes", text:e.notes || ""})));
+    });
+  });
+  box.append(el("h3", {text:"Every score"}), el("div", {class:"muted", text:"Each reviewer’s name, the four criteria, overall rating, total, and notes."}),
+    detail.childNodes.length ? el("div", {class:"tablewrap"}, el("table", {},
+      el("thead", {}, el("tr", {}, ["Reviewer","Nominee","Department","Teaching","Environment","Impact","Improve","Criteria /20","Overall /5","Total /25","Notes"].map((h,i) =>
+        el("th", {class:[3,4,5,6,7,8,9].includes(i) ? "r" : null, text:h})))), detail))
+      : el("div", {class:"empty", text:"No individual scores yet."}));
   const prog = el("tbody");
   people.forEach(r => {
     const d = NOMINEES.filter(n => status(r.s[n.key]) === "done").length;
