@@ -150,9 +150,12 @@ tr:last-child td{border-bottom:0}
       <div class="eyebrow">Distinguished Teaching Award · Teaching Assistants · 2026</div>
       <h1>Nominee review</h1>
     </div>
-    <div class="progress" aria-live="polite">
-      <div class="row" style="justify-content:space-between"><span id="progText" class="muted">0 of 44 scored</span><span id="who" class="muted"></span></div>
-      <div class="bar"><i id="progBar"></i></div>
+    <div style="display:flex;flex-direction:column;align-items:flex-end;gap:8px">
+      <div class="progress" aria-live="polite">
+        <div class="row" style="justify-content:space-between"><span id="progText" class="muted">0 of 44 scored</span><span id="who" class="muted"></span></div>
+        <div class="bar"><i id="progBar"></i></div>
+      </div>
+      <button class="btn" id="downloadScores" type="button">Download score sheet</button>
     </div>
   </header>
 
@@ -556,15 +559,50 @@ Use only the data provided. If notes are empty for a nominee, say nothing about 
   catch (err) { S.briefErr = err && err.code === "not_granted" ? "Brief writing wasn't allowed. You can turn it on from the page's permissions." : err && err.code === "rate_limited" ? "Too many requests just now. Try again in a minute." : "Couldn't write the brief. Try again."; }
   finally { S.briefBusy = false; renderResults(); }
 }
-async function exportCsv(reviewers, nameOf){
-  const q = v => { const s = v == null ? "" : String(v); return /[",\n]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s; };
-  const lines = [["Reviewer","Nominee","Department","Division","Effective teaching practices","Learning environment","Impact on students or peers","Efforts to improve teaching","Criteria total","Overall rating","Total score","Notes"].join(",")];
-  reviewers.forEach(r => NOMINEES.forEach(n => { const e = r.s[n.key]; if (!e) return; const cs = critSum(e);
-    lines.push([nameOf(r.id), n.name, n.dept, n.div, ...(e.c || []), cs, e.o, cs != null && e.o != null ? cs + e.o : "", e.notes].map(q).join(",")); }));
-  const dl = await window.claude?.use?.("downloads");
-  if (!dl) { showNotice("Downloading isn't available in this view."); return; }
-  try { await dl.save({filename:"DTA 2026 TA scores.csv", data: new Blob([lines.join("\n")], {type:"text/csv"})}); } catch {}
+function cell(v){ const s = v == null ? "" : String(v); return /[\t"\n]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s; }
+function reviewerRows(){
+  const shared = (S.all || []).filter(d => d.s && Object.keys(d.s).length);
+  if (shared.length) return shared.map(d => ({name: d.name || d.id, s: d.s}));
+  return [{name: "This browser", s: S.mine}];
 }
+function scoreSheetText(){
+  const reviewers = reviewerRows();
+  const head = ["Reviewer","Nominee","Department","Division","Title","Packet pages","Artifacts","Letters of recommendation","Packet note","Effective teaching practices","Learning environment","Impact on students or peers","Efforts to improve teaching","Criteria total","Overall rating","Total","Notes","Complete"];
+  const lines = [head.join("\t")];
+  const byNominee = NOMINEES.map(n => ({n, done: []}));
+  reviewers.forEach(r => NOMINEES.forEach((n, i) => {
+    const e = r.s[n.key];
+    const cs = critSum(e); const o = e && typeof e.o === "number" ? e.o : null;
+    const total = cs != null && o != null ? cs + o : null;
+    const done = status(e) === "done";
+    if (done) byNominee[i].done.push({name: r.name, total, notes: e.notes || ""});
+    lines.push([r.name, n.name, n.dept, n.div, n.title, n.pages, n.art, n.lor, n.note,
+      e?.c?.[0] ?? "", e?.c?.[1] ?? "", e?.c?.[2] ?? "", e?.c?.[3] ?? "",
+      cs ?? "", o ?? "", total ?? "", e?.notes || "", done ? "yes" : ""].map(cell).join("\t"));
+  }));
+  lines.push("", "Mismatches", "A mismatch is two or more finished reviews of the same nominee whose totals differ by 4 or more points out of 25.",
+    ["Nominee","Department","Finished reviews","Lowest total","Highest total","Gap","Reviewer notes"].join("\t"));
+  let flags = 0;
+  byNominee.forEach(({n, done}) => {
+    if (done.length < 2) return;
+    const totals = done.map(d => d.total);
+    const lo = Math.min(...totals), hi = Math.max(...totals);
+    if (hi - lo < DISAGREE) return;
+    flags++;
+    lines.push([n.name, n.dept, done.length, lo, hi, hi - lo, done.map(d => `${d.name}: ${d.notes}`).filter(t => !t.endsWith(": ")).join(" | ")].map(cell).join("\t"));
+  });
+  if (!flags) lines.push("None");
+  return lines.join("\n");
+}
+function downloadScoreSheet(){
+  const blob = new Blob([scoreSheetText()], {type:"text/tab-separated-values;charset=utf-8"});
+  const a = document.createElement("a");
+  a.href = URL.createObjectURL(blob);
+  a.download = "DTA-2026-TA-score-sheet.tsv";
+  document.body.append(a); a.click(); a.remove();
+  setTimeout(() => URL.revokeObjectURL(a.href), 1000);
+}
+async function exportCsv(){ downloadScoreSheet(); }
 
 // ---------- Tabs and filters
 function showTab(t){ S.tab = t;
@@ -573,6 +611,7 @@ function showTab(t){ S.tab = t;
   if (t === "results") renderResults(); }
 $("tabScore").onclick = () => showTab("score");
 $("tabResults").onclick = () => showTab("results");
+$("downloadScores").onclick = downloadScoreSheet;
 $("q").addEventListener("input", e => { S.q = e.target.value; renderList(); });
 document.querySelectorAll(".chip").forEach(c => c.addEventListener("click", () => {
   S.filter = c.dataset.f; document.querySelectorAll(".chip").forEach(x => x.setAttribute("aria-pressed", x === c)); renderList(); }));
