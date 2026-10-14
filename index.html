@@ -247,13 +247,20 @@ const CRITERIA = [
 const OVERALL = {id:"o", title:"Overall rating", sub:"Overall rating of the nominee, from 1 (lowest) to 5 (most deserving of the award)", guide:[
   "Consider the criteria above in light of the context of the discipline and department.",
   "This may include the size, number, and diversity of courses taught, the overall impact of their teaching, and the sample evidence and activities provided."]};
-const STEPS = [1,1.5,2,2.5,3,3.5,4,4.5,5];
+const STEPS = [1,2,3,4,5];
 const DISAGREE = 4; // points on the /25 total that flag a nominee for discussion
 
 // ---------- State
 const S = { sel: 0, mine: {}, uid: null, db: null, user: null, admin: false, canWrite: true,
   links: {}, all: [], filter: "all", q: "", tab: "score", dirty: false, saving: false, lastSaved: null, local: false };
 
+const PACKET_REPO = "https://github.com/onekey-ucla/dta-2026-ta-review/blob/main/packets/";
+function packetUrl(n){
+  const file = encodeURIComponent(n.name + ".pdf");
+  const host = location.hostname;
+  if (location.protocol === "file:" || host === "localhost" || host === "127.0.0.1") return "packets/" + file;
+  return PACKET_REPO + file;
+}
 const $ = id => document.getElementById(id);
 const el = (tag, attrs = {}, ...kids) => { const e = document.createElement(tag);
   for (const [k, v] of Object.entries(attrs)) { if (v == null || v === false) continue;
@@ -326,7 +333,7 @@ function critBlock(n, c, idx, extra){
 function renderFile(){
   const n = NOMINEES[S.sel]; const f = $("file"); f.textContent = "";
   const e = entry(n.key); const cs = critSum(e); const o = e?.o;
-  const link = S.links[n.key];
+  const link = S.links[n.key] || packetUrl(n);
 
   f.append(el("div", {class:"file-head"},
     el("div", {style:"display:flex;flex-direction:column;gap:6px;min-width:0"},
