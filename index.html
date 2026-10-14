@@ -51,11 +51,12 @@ button{font:inherit;color:inherit;cursor:pointer}
 .notice{border:1px solid var(--line);background:var(--warn-soft);color:var(--ink);border-radius:var(--r);padding:10px 14px;font-size:14px}
 
 /* desk */
-.desk{display:grid;grid-template-columns:240px minmax(320px, var(--packet-width, 1.4fr)) 16px minmax(280px, 1fr);gap:16px 0;align-items:start}
+.desk{display:grid;grid-template-columns:220px minmax(480px, var(--packet-width, 3.4fr)) 22px minmax(240px, 0.8fr);gap:16px 0;align-items:start}
 .list{margin-right:16px}
 .splitter{position:relative;cursor:col-resize;touch-action:none;align-self:stretch}
-.splitter::before{content:"";position:absolute;top:12px;bottom:12px;left:6px;width:4px;border-radius:99px;background:var(--line)}
-.splitter:hover::before,.splitter.dragging::before{background:var(--accent)}
+.splitter::before{content:"";position:absolute;top:0;bottom:0;left:9px;width:4px;border-radius:99px;background:var(--accent)}
+.splitter::after{content:"↔";position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);width:22px;height:40px;display:flex;align-items:center;justify-content:center;border-radius:8px;background:var(--accent);color:var(--on-accent);font-size:14px;font-weight:700;line-height:1}
+.splitter:hover::before,.splitter.dragging::before{width:6px;left:8px}
 @media (max-width:1100px){
   .desk{grid-template-columns:220px minmax(0,1fr);gap:16px}
   .viewer{grid-column:1 / -1;height:75vh}
@@ -208,7 +209,7 @@ tr.agree td{background:var(--good-soft)}
       <div class="items" id="items"></div>
     </aside>
     <article class="panel viewer" id="viewer" aria-label="Nomination packet"></article>
-    <div class="splitter" id="packetSplit" role="separator" aria-orientation="vertical" aria-label="Packet width" tabindex="0"></div>
+    <div class="splitter" id="packetSplit" role="separator" aria-orientation="vertical" aria-label="Drag to widen the packet" title="Drag to widen the packet" tabindex="0"></div>
     <article class="panel file" id="file" aria-live="polite"></article>
   </section>
 </div>
@@ -574,14 +575,14 @@ document.querySelectorAll(".chip").forEach(c => c.addEventListener("click", () =
   function setPacketWidth(px) {
     if (narrow()) return;
     const list = desk.querySelector(".list").getBoundingClientRect().width + 16;
-    const max = desk.clientWidth - list - split.getBoundingClientRect().width - 280;
-    const width = Math.round(Math.max(320, Math.min(max, px)));
+    const max = desk.clientWidth - list - split.getBoundingClientRect().width - 240;
+    const width = Math.round(Math.max(480, Math.min(max, px)));
     desk.style.setProperty("--packet-width", width + "px");
     split.setAttribute("aria-valuenow", String(width));
-    try { localStorage.setItem("dta26-packet-width", String(width)); } catch {}
+    try { localStorage.setItem("dta26-packet-w", String(width)); } catch {}
   }
   try {
-    const saved = parseInt(localStorage.getItem("dta26-packet-width"), 10);
+    const saved = parseInt(localStorage.getItem("dta26-packet-w"), 10);
     if (saved > 0) desk.style.setProperty("--packet-width", saved + "px");
   } catch {}
   split.addEventListener("pointerdown", (e) => {
