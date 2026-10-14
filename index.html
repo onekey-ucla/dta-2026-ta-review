@@ -86,8 +86,11 @@ input[type=search],input[type=url],textarea,select{font:inherit;color:var(--ink)
 .facts{display:flex;flex-wrap:wrap;gap:6px 16px;font-size:14px;color:var(--muted)}
 .facts b{color:var(--ink);font-weight:600}
 .packet{border:1px solid var(--line);border-radius:var(--r);background:var(--sunk);padding:14px;display:flex;flex-direction:column;gap:10px}
-.packet ol{margin:0;padding-left:20px;columns:2;column-gap:24px;font-size:14px}
-@media (max-width:560px){.packet ol{columns:1}}
+.sections{display:flex;flex-direction:column;gap:4px;margin:0;padding:0;list-style:none}
+.section{display:flex;justify-content:space-between;align-items:baseline;gap:12px;width:100%;text-align:left;background:var(--surface);border:1px solid var(--line);border-radius:8px;padding:7px 10px;font-size:14px}
+.section:hover{border-color:var(--accent)}
+.section.on{background:var(--accent-soft);border-color:var(--accent);font-weight:600}
+.section .pg{font-family:var(--f-mono);font-size:12px;font-weight:500;color:var(--muted)}
 .btn{display:inline-flex;align-items:center;gap:6px;border-radius:8px;padding:8px 14px;font-weight:600;border:1px solid var(--line);background:var(--surface);text-decoration:none;color:var(--ink)}
 .btn.primary{background:var(--accent);border-color:var(--accent);color:var(--on-accent)}
 .btn[disabled]{opacity:.5;cursor:default}
@@ -200,13 +203,24 @@ tr.agree td{background:var(--good-soft)}
 </div>
 
 <script src="portal.js"></script>
+<script src="sections.js"></script>
 <script>
 // ---------- State
 const S = { sel: 0, mine: {}, uid: null, db: null, user: null, admin: false, canWrite: true,
-  links: {}, all: [], book: {}, reviewer: "", filter: "all", q: "", tab: "score", dirty: false, saving: false, lastSaved: null, local: false };
+  links: {}, all: [], book: {}, reviewer: "", filter: "all", q: "", tab: "score", dirty: false, saving: false, lastSaved: null, local: false, sectionPage: null };
 
 function packetUrl(n){
   return "packets/" + encodeURIComponent(n.name + ".pdf");
+}
+function packetSrc(n){
+  const base = (S.links[n.key] || packetUrl(n)).split("#")[0].split("?")[0];
+  return S.sectionPage ? `${base}?p=${S.sectionPage}#page=${S.sectionPage}` : base;
+}
+function showSection(n, page){
+  S.sectionPage = page;
+  const frame = $("viewer").querySelector("iframe");
+  if (frame) frame.src = packetSrc(n);
+  document.querySelectorAll("#file .section").forEach(b => b.classList.toggle("on", b.dataset.page === String(page)));
 }
 const $ = id => document.getElementById(id);
 const el = (tag, attrs = {}, ...kids) => { const e = document.createElement(tag);
@@ -311,14 +325,8 @@ function renderList(){
 }
 
 // ---------- Rendering: the open file
-function packetList(n){
-  const items = [];
-  if (n.name !== "") items.push("Department Letter");
-  if (n.key !== "christina-toma") items.push("Nominee Statement", "Teaching Philosophy");
-  for (let i = 1; i <= n.art; i++) items.push(`Teaching Artifact ${i}`);
-  for (let i = 1; i <= n.lor; i++) items.push(`Letter of Recommendation ${i}`);
-  items.push("Letter of Support");
-  return items;
+function packetSections(n){
+  return (typeof SECTIONS !== "undefined" && SECTIONS[n.key]) || [];
 }
 function scaleFor(n, critId, idx){
   const e = entry(n.key); const cur = critId === "o" ? e?.o : e?.c?.[idx];
@@ -366,12 +374,17 @@ function renderFile(){
   view.textContent = "";
   view.append(
     el("div", {class:"viewer-bar"}, "Nomination packet"),
-    el("iframe", {title: n.name + " nomination packet", src: link}));
+    el("iframe", {title: n.name + " nomination packet", src: packetSrc(n)}));
 
+  const sections = packetSections(n);
   const pk = el("div", {class:"packet"},
     el("div", {}, el("div", {style:"font-weight:600"}, "What is in the packet"),
       el("div", {class:"muted", style:"font-size:13px"}, `${n.pages} pages · ${n.art} of 5 artifacts · ${n.lor} of 3 letters of recommendation`)),
-    el("ol", {}, packetList(n).map(t => el("li", {text:t}))));
+    el("div", {class:"sections"}, sections.map(([title, page]) => el("button", {
+      type: "button", class: "section" + (page === (S.sectionPage || sections[0][1]) ? " on" : ""),
+      "data-page": String(page), "aria-label": `${title}, page ${page}`,
+      onclick: () => showSection(n, page)
+    }, el("span", {text: title}), el("span", {class: "pg", text: `p. ${page}`})))));
   if (n.note) pk.append(el("div", {class:"flag", text:n.note}));
   if (S.admin) {
     const inp = el("input", {type:"url", id:"linkInput", placeholder:"Paste the shared-drive link to this packet", value: link || "", "aria-label":"Packet link"});
@@ -405,7 +418,7 @@ function saveText(){
   if (S.local) return `Saved for ${S.reviewer || "you"} in this browser`;
   return S.lastSaved ? `Saved ${S.lastSaved.toLocaleTimeString([], {hour:"numeric", minute:"2-digit"})}` : "Scores save automatically";
 }
-function select(i){ S.sel = i; renderList(); renderFile(); try { localStorage.setItem("dta26-sel", String(i)); } catch {} window.scrollTo({top:0}); }
+function select(i){ if (i !== S.sel) S.sectionPage = null; S.sel = i; renderList(); renderFile(); try { localStorage.setItem("dta26-sel", String(i)); } catch {} window.scrollTo({top:0}); }
 
 // ---------- Editing and saving
 function ensure(key){ return S.mine[key] || (S.mine[key] = {c:[null,null,null,null], o:null, notes:""}); }
