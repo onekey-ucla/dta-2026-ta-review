@@ -26,6 +26,8 @@ h1,h2,h3{font-family:var(--f-display);font-weight:600;margin:0;line-height:1.2}
 h1{font-size:28px} h3{font-size:17px;font-family:var(--f-body)}
 a{color:var(--accent)}
 .top{display:flex;flex-wrap:wrap;justify-content:space-between;gap:12px;align-items:flex-end}
+.namebox{display:flex;flex-direction:column;gap:6px;margin-top:12px;font-size:13px;font-weight:700}
+.namebox input{width:min(320px,100%);font-size:16px;font-weight:500;background:var(--surface);border:2px solid var(--accent);color:var(--ink);border-radius:8px;padding:8px 10px}
 .eyebrow{font-size:12px;letter-spacing:.06em;text-transform:uppercase;color:var(--muted);font-weight:600}
 .muted{color:var(--muted)}
 .num{font-family:var(--f-mono);font-variant-numeric:tabular-nums}
@@ -64,6 +66,9 @@ td.notes{white-space:normal;min-width:200px}
     <div>
       <div class="eyebrow">Distinguished Teaching Award · Teaching Assistants · 2026</div>
       <h1>Rubric totals</h1>
+      <label class="namebox" for="reviewerName">평가자 이름
+        <input id="reviewerName" type="text" placeholder="이름을 입력한 뒤 Enter" aria-label="평가자 이름" autocomplete="name">
+      </label>
     </div>
     <a class="btn" href="index.html">Back to scoring</a>
   </header>
@@ -189,4 +194,15 @@ function render(){
 }
 render();
 window.addEventListener("storage", render);
+const nameInput = $("reviewerName");
+nameInput.value = localStorage.getItem("dta26-reviewer") || "";
+nameInput.addEventListener("change", () => {
+  const name = nameInput.value.trim();
+  if (!name) return;
+  localStorage.setItem("dta26-reviewer", name);
+  let book = {};
+  try { book = JSON.parse(localStorage.getItem("dta26-book") || "{}") || {}; } catch {}
+  if (!book[name]) book[name] = {s: {}, updatedAt: new Date().toISOString()};
+  localStorage.setItem("dta26-book", JSON.stringify(book));
+});
 </script>

@@ -39,6 +39,8 @@ button{font:inherit;color:inherit;cursor:pointer}
 
 /* header */
 .top{display:flex;flex-wrap:wrap;align-items:flex-end;justify-content:space-between;gap:12px 24px}
+.namebox{display:flex;flex-direction:column;gap:6px;margin-top:12px;font-size:13px;font-weight:700;color:var(--ink)}
+.namebox input{width:min(320px,100%);font-size:16px;font-weight:500;background:var(--surface);border:2px solid var(--accent)}
 .progress{min-width:220px;flex:0 1 320px;display:flex;flex-direction:column;gap:6px}
 .bar{height:8px;border-radius:99px;background:var(--sunk);border:1px solid var(--line);overflow:hidden}
 .bar>i{display:block;height:100%;background:var(--good);width:0;transition:width .3s}
@@ -160,6 +162,9 @@ tr.agree td{background:var(--good-soft)}
     <div>
       <div class="eyebrow">Distinguished Teaching Award · Teaching Assistants · 2026</div>
       <h1>Nominee review</h1>
+      <label class="namebox" for="reviewerName">평가자 이름
+        <input id="reviewerName" type="text" placeholder="이름을 입력한 뒤 Enter" aria-label="평가자 이름" autocomplete="name">
+      </label>
     </div>
     <div style="display:flex;flex-direction:column;align-items:flex-end;gap:8px">
       <div class="progress" aria-live="polite">
@@ -167,7 +172,6 @@ tr.agree td{background:var(--good-soft)}
         <div class="bar"><i id="progBar"></i></div>
       </div>
       <div class="row">
-        <input id="reviewerName" type="text" placeholder="Your name" aria-label="Your name" autocomplete="name" style="width:160px">
         <a class="btn" href="totals.html">Rubric totals</a>
         <button class="btn" id="downloadScores" type="button">Download score sheet</button>
         <label class="btn" style="cursor:pointer">Add a reviewer's sheet<input id="importScores" type="file" accept=".tsv,.txt,.csv" hidden></label>
@@ -534,7 +538,7 @@ renderList(); renderFile();
   const uid = user ? await user.id() : null;
   if (!db || !uid) {
     S.local = true;
-    if (!S.reviewer) showNotice("Enter your name above. Scores are saved in this browser under that name.");
+    if (!S.reviewer) showNotice("위에 평가자 이름을 입력한 뒤 Enter를 누르세요. 점수는 그 이름으로 이 브라우저에 저장됩니다.");
     else hideNotice();
     renderList(); renderFile();
     return;
