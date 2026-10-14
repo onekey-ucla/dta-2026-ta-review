@@ -8,23 +8,20 @@ sees a live summary of all scores.
 
 ## How it runs
 
-The whole portal is one file, `index.html`. It is published as a Claude artifact
-and only works fully there: saving scores, the live summary, the CSV export and the
-discussion brief use the artifact's built-in capabilities (`window.claude.use(...)`),
-which exist only when the page is opened on claude.ai.
+The whole portal is one file, `index.html`. Scores, the live summary, the CSV
+export, and the discussion brief work in the published portal.
 
 Opened anywhere else (a browser, GitHub Pages) the page loads, but scores are kept
 in that browser only and the live summary does not appear.
 
 ## Making changes
 
-1. Edit `index.html` here in Cursor.
+1. Edit `index.html`.
 2. Commit and push.
-3. Ask Claude to republish the portal from the updated file (or paste the file into
-   the Claude conversation that manages it). Pushing to GitHub alone does not change
-   the live portal.
+3. Republish the portal from the updated file. Pushing to GitHub alone does not
+   change the live portal.
 
-## Access rules (set when the artifact is published)
+## Access rules (set when the portal is published)
 
 | Data | Who can read | Who can write |
 | --- | --- | --- |
@@ -37,7 +34,7 @@ who should see everyone's scores and the live summary.
 ## What's in the data
 
 - Nominee list, rubric wording and packet details: inside `index.html`.
-- Packets: in `packets/` (listed below). Scores: stored with the artifact on claude.ai, not in this repo.
+- Packets: in `packets/` (listed below). Scores: stored in the published portal, not in this repo.
 
 ## Nominee packets
 
