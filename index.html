@@ -173,7 +173,7 @@ tr.agree td{background:var(--good-soft)}
       </div>
       <div class="row">
         <a class="btn" href="totals.html">Rubric totals</a>
-        <button class="btn" id="downloadScores" type="button">Download score sheet</button>
+        <button class="btn" id="downloadScores" type="button">Download CSV</button>
         <label class="btn" style="cursor:pointer">Add a reviewer's sheet<input id="importScores" type="file" accept=".tsv,.txt,.csv" hidden></label>
       </div>
     </div>
@@ -442,7 +442,21 @@ async function saveLink(n, url){
 function showNotice(t){ const b = $("notice"); b.textContent = t; b.hidden = false; }
 function hideNotice(){ $("notice").hidden = true; }
 
-function cell(v){ const s = v == null ? "" : String(v); return /[\t"\n]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s; }
+function parseCsvRow(line){
+  const out = []; let cur = "", q = false;
+  for (let i = 0; i < line.length; i++) {
+    const ch = line[i];
+    if (q) {
+      if (ch === '"') { if (line[i + 1] === '"') { cur += '"'; i++; } else q = false; }
+      else cur += ch;
+    } else if (ch === '"') q = true;
+    else if (ch === "," || ch === "\t") { out.push(cur); cur = ""; }
+    else cur += ch;
+  }
+  out.push(cur);
+  return out;
+}
+function cell(v){ const s = v == null ? "" : String(v); return /[",\n]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s; }
 function reviewerRows(){
   const shared = (S.all || []).filter(d => d.s && Object.keys(d.s).length);
   if (shared.length) return shared.map(d => ({name: d.name || d.id, s: d.s}));
@@ -451,7 +465,7 @@ function reviewerRows(){
 function scoreSheetText(){
   const reviewers = reviewerRows();
   const head = ["Reviewer","Nominee","Department","Division","Title","Packet pages","Artifacts","Letters of recommendation","Packet note","Effective teaching practices","Learning environment","Impact on students or peers","Efforts to improve teaching","Criteria total","Overall rating","Total","Notes","Complete"];
-  const lines = [head.join("\t")];
+  const lines = [head.join(",")];
   const byNominee = NOMINEES.map(n => ({n, done: []}));
   reviewers.forEach(r => NOMINEES.forEach((n, i) => {
     const e = r.s[n.key];
@@ -461,10 +475,10 @@ function scoreSheetText(){
     if (done) byNominee[i].done.push({name: r.name, total, notes: e.notes || ""});
     lines.push([r.name, n.name, n.dept, n.div, n.title, n.pages, n.art, n.lor, n.note,
       e?.c?.[0] ?? "", e?.c?.[1] ?? "", e?.c?.[2] ?? "", e?.c?.[3] ?? "",
-      cs ?? "", o ?? "", total ?? "", e?.notes || "", done ? "yes" : ""].map(cell).join("\t"));
+      cs ?? "", o ?? "", total ?? "", e?.notes || "", done ? "yes" : ""].map(cell).join(","));
   }));
   lines.push("", "Mismatches", "A mismatch is two or more finished reviews of the same nominee whose totals differ by 4 or more points out of 25.",
-    ["Nominee","Department","Finished reviews","Lowest total","Highest total","Gap","Reviewer notes"].join("\t"));
+    ["Nominee","Department","Finished reviews","Lowest total","Highest total","Gap","Reviewer notes"].join(","));
   let flags = 0;
   byNominee.forEach(({n, done}) => {
     if (done.length < 2) return;
@@ -472,16 +486,16 @@ function scoreSheetText(){
     const lo = Math.min(...totals), hi = Math.max(...totals);
     if (hi - lo < DISAGREE) return;
     flags++;
-    lines.push([n.name, n.dept, done.length, lo, hi, hi - lo, done.map(d => `${d.name}: ${d.notes}`).filter(t => !t.endsWith(": ")).join(" | ")].map(cell).join("\t"));
+    lines.push([n.name, n.dept, done.length, lo, hi, hi - lo, done.map(d => `${d.name}: ${d.notes}`).filter(t => !t.endsWith(": ")).join(" | ")].map(cell).join(","));
   });
   if (!flags) lines.push("None");
   return lines.join("\n");
 }
 function downloadScoreSheet(){
-  const blob = new Blob([scoreSheetText()], {type:"text/tab-separated-values;charset=utf-8"});
+  const blob = new Blob(["\uFEFF" + scoreSheetText()], {type:"text/csv;charset=utf-8"});
   const a = document.createElement("a");
   a.href = URL.createObjectURL(blob);
-  a.download = "DTA-2026-TA-score-sheet.tsv";
+  a.download = "DTA-2026-TA-score-sheet.csv";
   document.body.append(a); a.click(); a.remove();
   setTimeout(() => URL.revokeObjectURL(a.href), 1000);
 }
@@ -491,7 +505,7 @@ function importScoreSheet(file){
   reader.onload = () => {
     const lines = String(reader.result || "").split(/\r?\n/).map(l => l.trimEnd()).filter(l => l && !l.startsWith("#") && l !== "Mismatches" && !l.startsWith("A mismatch"));
     if (!lines.length) { showNotice("That file has no scores."); return; }
-    const head = lines[0].split("\t");
+    const head = parseCsvRow(lines[0]);
     const col = name => head.indexOf(name);
     const iRev = col("Reviewer"), iNom = col("Nominee");
     const iC = ["Effective teaching practices","Learning environment","Impact on students or peers","Efforts to improve teaching"].map(col);
@@ -500,7 +514,7 @@ function importScoreSheet(file){
     const num = s => s === "" || s == null ? null : Number(s);
     const names = new Set();
     lines.slice(1).forEach(line => {
-      const c = line.split("\t");
+      const c = parseCsvRow(line);
       const reviewer = (c[iRev] || "").trim();
       const nominee = (c[iNom] || "").trim();
       if (!reviewer || !nominee || reviewer === "None") return;
