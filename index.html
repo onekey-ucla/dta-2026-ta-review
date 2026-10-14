@@ -66,6 +66,10 @@ input[type=search],input[type=url],textarea,select{font:inherit;color:var(--ink)
 .item{width:100%;text-align:left;background:none;border:0;border-radius:8px;padding:8px 10px;display:grid;grid-template-columns:minmax(0,1fr) auto;gap:2px 8px;align-items:center}
 .item:hover{background:var(--sunk)}
 .item[aria-current="true"]{background:var(--accent-soft)}
+.item.mismatch{box-shadow:inset 4px 0 0 var(--warn)}
+.item.agree{box-shadow:inset 4px 0 0 var(--good)}
+.pill.mismatch{background:var(--crit);color:#fff}
+.pill.agree{background:var(--good-soft);color:var(--good)}
 .item .nm{font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .item .dp{grid-column:1;font-size:12.5px;color:var(--muted);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .item .st{grid-row:1 / span 2;grid-column:2}
@@ -97,6 +101,11 @@ details ul{margin:6px 0 0;padding-left:18px;display:flex;flex-direction:column;g
 .sc{min-width:44px;height:40px;border-radius:8px;border:1px solid var(--line);background:var(--surface);font-family:var(--f-mono);font-variant-numeric:tabular-nums}
 .sc.half{min-width:40px;color:var(--muted);font-size:13px}
 .sc[aria-pressed="true"]{background:var(--accent);border-color:var(--accent);color:var(--on-accent)}
+.sc.peer{box-shadow:inset 0 -3px 0 var(--gold)}
+.sc.clash[aria-pressed="true"]{background:var(--crit);border-color:var(--crit);color:#fff}
+.peers{font-size:12.5px;color:var(--muted)}
+.peers .bad{color:var(--crit);font-weight:700}
+.peers .ok{color:var(--good);font-weight:700}
 .sc.clear{font-family:var(--f-body);font-size:13px;color:var(--muted);border-style:dashed}
 .ends{display:flex;justify-content:space-between;font-size:12px;color:var(--muted);max-width:470px}
 .crit.overall{background:var(--gold-soft);border:1px solid var(--line);border-radius:var(--r);padding:16px}
@@ -114,6 +123,8 @@ th,td{padding:8px 12px;border-bottom:1px solid var(--line);text-align:left;white
 th{font-size:12px;letter-spacing:.04em;text-transform:uppercase;color:var(--muted);background:var(--sunk);font-weight:600}
 td.r,th.r{text-align:right}
 tr:last-child td{border-bottom:0}
+tr.mismatch td{background:var(--warn-soft)}
+tr.agree td{background:var(--good-soft)}
 .spark{display:inline-block;width:90px;height:8px;background:var(--sunk);border-radius:99px;position:relative;vertical-align:middle}
 .spark i{position:absolute;top:0;height:8px;border-radius:99px;background:var(--accent);opacity:.55}
 .spark b{position:absolute;top:-2px;width:3px;height:12px;background:var(--ink);border-radius:2px}
@@ -155,7 +166,11 @@ tr:last-child td{border-bottom:0}
         <div class="row" style="justify-content:space-between"><span id="progText" class="muted">0 of 44 scored</span><span id="who" class="muted"></span></div>
         <div class="bar"><i id="progBar"></i></div>
       </div>
-      <button class="btn" id="downloadScores" type="button">Download score sheet</button>
+      <div class="row">
+        <input id="reviewerName" type="text" placeholder="Your name" aria-label="Your name" autocomplete="name" style="width:160px">
+        <button class="btn" id="downloadScores" type="button">Download score sheet</button>
+        <label class="btn" style="cursor:pointer">Add a reviewer's sheet<input id="importScores" type="file" accept=".tsv,.txt,.csv" hidden></label>
+      </div>
     </div>
   </header>
 
@@ -261,7 +276,7 @@ const DISAGREE = 4; // points on the /25 total that flag a nominee for discussio
 
 // ---------- State
 const S = { sel: 0, mine: {}, uid: null, db: null, user: null, admin: false, canWrite: true,
-  links: {}, all: [], filter: "all", q: "", tab: "score", dirty: false, saving: false, lastSaved: null, local: false };
+  links: {}, all: [], book: {}, reviewer: "", filter: "all", q: "", tab: "score", dirty: false, saving: false, lastSaved: null, local: false };
 
 function packetUrl(n){
   return "packets/" + encodeURIComponent(n.name + ".pdf");
@@ -280,9 +295,66 @@ function status(e) { if (!e) return "none"; const c = (e.c||[]).filter(x => type
   return c === 0 && !e.notes ? "none" : c === 5 ? "done" : "prog"; }
 const STATUS_LABEL = {none:"Not started", prog:"In progress", done:"Scored"};
 
-// ---------- Local fallback (only when shared saving is unavailable)
-function localLoad(){ try { const v = localStorage.getItem("dta26-scores"); if (v) S.mine = JSON.parse(v) || {}; } catch {} }
-function localSave(){ try { localStorage.setItem("dta26-scores", JSON.stringify(S.mine)); } catch {} }
+// ---------- Scores saved in this browser, one set per reviewer name
+function rebuildAll(){
+  S.all = Object.entries(S.book).filter(([, v]) => v && v.s && Object.keys(v.s).length)
+    .map(([name, v]) => ({id: name, name, s: v.s}));
+}
+function localLoad(){
+  try {
+    const book = JSON.parse(localStorage.getItem("dta26-book") || "null");
+    if (book && typeof book === "object") S.book = book;
+    S.reviewer = localStorage.getItem("dta26-reviewer") || "";
+    const old = JSON.parse(localStorage.getItem("dta26-scores") || "null");
+    if (old && S.reviewer && !S.book[S.reviewer]) S.book[S.reviewer] = {s: old, updatedAt: ""};
+    if (!S.reviewer && old && Object.keys(old).length) { S.reviewer = "Reviewer"; S.book[S.reviewer] = {s: old, updatedAt: ""}; }
+  } catch {}
+  S.mine = (S.book[S.reviewer] && S.book[S.reviewer].s) ? JSON.parse(JSON.stringify(S.book[S.reviewer].s)) : {};
+  rebuildAll();
+  const input = $("reviewerName"); if (input && S.reviewer) input.value = S.reviewer;
+}
+function localSave(){
+  const name = (S.reviewer || "Reviewer").trim() || "Reviewer";
+  S.reviewer = name;
+  S.book[name] = {s: JSON.parse(JSON.stringify(S.mine)), updatedAt: new Date().toISOString()};
+  try {
+    localStorage.setItem("dta26-book", JSON.stringify(S.book));
+    localStorage.setItem("dta26-reviewer", name);
+    localStorage.setItem("dta26-scores", JSON.stringify(S.mine));
+  } catch {}
+  rebuildAll();
+  const input = $("reviewerName"); if (input && input.value.trim() !== name) input.value = name;
+}
+function setReviewer(name){
+  const next = name.trim();
+  if (!next || next === S.reviewer) return;
+  if (S.reviewer) S.book[S.reviewer] = {s: JSON.parse(JSON.stringify(S.mine)), updatedAt: new Date().toISOString()};
+  S.reviewer = next;
+  S.mine = (S.book[next] && S.book[next].s) ? JSON.parse(JSON.stringify(S.book[next].s)) : {};
+  localSave(); renderList(); renderFile();
+}
+function nomineeSpread(key){
+  const totals = [];
+  const seen = new Set();
+  S.all.forEach(r => {
+    const id = r.name || r.id; if (seen.has(id)) return; seen.add(id);
+    const e = r.s && r.s[key]; if (status(e) !== "done") return;
+    totals.push(critSum(e) + e.o);
+  });
+  if (S.reviewer && !seen.has(S.reviewer) && status(entry(key)) === "done") totals.push(critSum(entry(key)) + entry(key).o);
+  if (totals.length < 2) return null;
+  const lo = Math.min(...totals), hi = Math.max(...totals);
+  return {lo, hi, gap: hi - lo, mismatch: hi - lo >= DISAGREE};
+}
+function peerScores(n, critId, idx){
+  return S.all.map(r => {
+    const id = r.name || r.id;
+    if (id === S.reviewer || r.id === S.uid) return null;
+    const e = r.s && r.s[n.key];
+    const v = !e ? null : critId === "o" ? e.o : e.c?.[idx];
+    return typeof v === "number" ? {name: id, v} : null;
+  }).filter(Boolean);
+}
 
 // ---------- Rendering: list
 function renderProgress(){
@@ -300,9 +372,11 @@ function renderList(){
     if (q && !(n.name.toLowerCase().includes(q) || n.dept.toLowerCase().includes(q) || n.div.toLowerCase().includes(q))) return;
     shown++;
     const tot = critSum(entry(n.key)); const o = entry(n.key)?.o;
-    box.append(el("button", {class:"item", "aria-current": i === S.sel ? "true" : "false", onclick: () => select(i)},
+    const spread = nomineeSpread(n.key);
+    const mark = spread ? (spread.mismatch ? " mismatch" : " agree") : "";
+    box.append(el("button", {class:"item" + mark, "aria-current": i === S.sel ? "true" : "false", onclick: () => select(i)},
       el("span", {class:"nm", text:n.name}),
-      el("span", {class:"st"}, el("span", {class:"pill " + st, text: st === "done" ? `${fmt(tot + o)} / 25` : STATUS_LABEL[st]})),
+      el("span", {class:"st"}, el("span", {class:"pill " + (spread && spread.mismatch ? "mismatch" : st), text: spread && spread.mismatch ? `Differ by ${spread.gap}` : st === "done" ? `${fmt(tot + o)} / 25` : STATUS_LABEL[st]})),
       el("span", {class:"dp", text:n.dept})));
   });
   if (!shown) box.append(el("div", {class:"empty", text:"No nominees match."}));
@@ -321,12 +395,20 @@ function packetList(n){
 }
 function scaleFor(n, critId, idx){
   const e = entry(n.key); const cur = critId === "o" ? e?.o : e?.c?.[idx];
+  const peers = peerScores(n, critId, idx);
+  const peerVals = peers.map(p => p.v);
+  const differ = peerVals.length && (cur == null || peerVals.some(v => v !== cur));
   const wrap = el("div", {class:"scale", role:"group", "aria-label": "Score"});
-  STEPS.forEach(v => wrap.append(el("button", {class: "sc" + (Number.isInteger(v) ? "" : " half"),
-    "aria-pressed": cur === v ? "true" : "false", "aria-label": `Score ${v}`, disabled: !S.canWrite,
-    onclick: () => setScore(n, critId, idx, cur === v ? null : v)}, fmt(v))));
+  STEPS.forEach(v => {
+    const chosen = peers.some(p => p.v === v);
+    const clash = cur === v && differ;
+    wrap.append(el("button", {class: "sc" + (Number.isInteger(v) ? "" : " half") + (chosen ? " peer" : "") + (clash ? " clash" : ""),
+      "aria-pressed": cur === v ? "true" : "false", "aria-label": `Score ${v}`, disabled: !S.canWrite,
+      onclick: () => setScore(n, critId, idx, cur === v ? null : v)}, fmt(v)));
+  });
   if (cur != null) wrap.append(el("button", {class:"sc clear", disabled: !S.canWrite, onclick: () => setScore(n, critId, idx, null)}, "Clear"));
-  return el("div", {}, wrap, el("div", {class:"ends"}, el("span", {text:"1 = lowest evidence"}), el("span", {text:"5 = highest evidence"})));
+  const who = peers.length ? el("div", {class:"peers"}, peers.map((p, i) => el("span", {}, i ? " · " : "", el("b", {class: p.v === cur ? "ok" : "bad", text: p.name}), " ", fmt(p.v)))) : null;
+  return el("div", {}, wrap, el("div", {class:"ends"}, el("span", {text:"1 = lowest evidence"}), el("span", {text:"5 = highest evidence"})), who);
 }
 function critBlock(n, c, idx, extra){
   return el("section", {class: "crit" + (extra ? " overall" : "")},
@@ -348,7 +430,10 @@ function renderFile(){
         el("span", {}, el("b", {text:n.title})),
         el("span", {text:n.dept}),
         el("span", {text:n.div}))),
-    el("div", {}, el("span", {class:"pill " + status(e), text:STATUS_LABEL[status(e)]}))));
+    el("div", {}, el("span", {class:"pill " + (nomineeSpread(n.key)?.mismatch ? "mismatch" : status(e)), text: nomineeSpread(n.key)?.mismatch ? "Scores differ" : STATUS_LABEL[status(e)]}))));
+
+  const spread = nomineeSpread(n.key);
+  if (spread && spread.mismatch) f.append(el("div", {class:"flag", text:`Reviewers differ by ${spread.gap} points (${fmt(spread.lo)}–${fmt(spread.hi)} out of 25).`}));
 
   const view = $("viewer");
   view.textContent = "";
@@ -390,7 +475,7 @@ function renderFile(){
 function saveText(){
   if (!S.canWrite) return "View only";
   if (S.saving || S.dirty) return "Saving…";
-  if (S.local) return "Saved in this browser only";
+  if (S.local) return `Saved for ${S.reviewer || "you"} in this browser`;
   return S.lastSaved ? `Saved ${S.lastSaved.toLocaleTimeString([], {hour:"numeric", minute:"2-digit"})}` : "Scores save automatically";
 }
 function select(i){ S.sel = i; renderList(); renderFile(); try { localStorage.setItem("dta26-sel", String(i)); } catch {} window.scrollTo({top:0}); }
@@ -512,7 +597,7 @@ async function renderResults(){
   const tb = el("tbody");
   rows.forEach((r, i) => {
     const disagree = r.count > 1 && r.hi - r.lo >= DISAGREE;
-    tb.append(el("tr", {},
+    tb.append(el("tr", {class: disagree ? "mismatch" : (r.count > 1 ? "agree" : "")},
       el("td", {class:"r num", text: r.total == null ? "" : String(i + 1)}),
       el("td", {}, el("button", {class:"btn", style:"padding:2px 8px;border:0;background:none;font-weight:600", onclick: () => { select(NOMINEES.indexOf(r.n)); showTab("score"); }}, r.n.name)),
       el("td", {class:"muted", text:r.n.dept}),
@@ -563,7 +648,7 @@ function cell(v){ const s = v == null ? "" : String(v); return /[\t"\n]/.test(s)
 function reviewerRows(){
   const shared = (S.all || []).filter(d => d.s && Object.keys(d.s).length);
   if (shared.length) return shared.map(d => ({name: d.name || d.id, s: d.s}));
-  return [{name: "This browser", s: S.mine}];
+  return [{name: S.reviewer || "Reviewer", s: S.mine}];
 }
 function scoreSheetText(){
   const reviewers = reviewerRows();
@@ -603,6 +688,38 @@ function downloadScoreSheet(){
   setTimeout(() => URL.revokeObjectURL(a.href), 1000);
 }
 async function exportCsv(){ downloadScoreSheet(); }
+function importScoreSheet(file){
+  const reader = new FileReader();
+  reader.onload = () => {
+    const lines = String(reader.result || "").split(/\r?\n/).map(l => l.trimEnd()).filter(l => l && !l.startsWith("#") && l !== "Mismatches" && !l.startsWith("A mismatch"));
+    if (!lines.length) { showNotice("That file has no scores."); return; }
+    const head = lines[0].split("\t");
+    const col = name => head.indexOf(name);
+    const iRev = col("Reviewer"), iNom = col("Nominee");
+    const iC = ["Effective teaching practices","Learning environment","Impact on students or peers","Efforts to improve teaching"].map(col);
+    const iO = col("Overall rating"), iNotes = col("Notes");
+    if (iRev < 0 || iNom < 0) { showNotice("That file is not a score sheet."); return; }
+    const num = s => s === "" || s == null ? null : Number(s);
+    const names = new Set();
+    lines.slice(1).forEach(line => {
+      const c = line.split("\t");
+      const reviewer = (c[iRev] || "").trim();
+      const nominee = (c[iNom] || "").trim();
+      if (!reviewer || !nominee || reviewer === "None") return;
+      const key = nominee.toLowerCase().replace(/[^a-z0-9]+/g, "-");
+      if (!NOMINEES.some(n => n.key === key)) return;
+      const rec = S.book[reviewer] || {s: {}, updatedAt: ""};
+      rec.s[key] = {c: iC.map(i => i < 0 ? null : num(c[i])), o: iO < 0 ? null : num(c[iO]), notes: iNotes >= 0 ? (c[iNotes] || "") : "", t: new Date().toISOString()};
+      rec.updatedAt = new Date().toISOString();
+      S.book[reviewer] = rec;
+      names.add(reviewer);
+    });
+    if (S.reviewer && S.book[S.reviewer]) S.mine = JSON.parse(JSON.stringify(S.book[S.reviewer].s));
+    localSave(); renderList(); renderFile();
+    showNotice(names.size ? `Stored scores for ${[...names].join(", ")}. Differences of 4 or more points are marked in red.` : "No scores were found in that file.");
+  };
+  reader.readAsText(file);
+}
 
 // ---------- Tabs and filters
 function showTab(t){ S.tab = t;
@@ -612,11 +729,14 @@ function showTab(t){ S.tab = t;
 $("tabScore").onclick = () => showTab("score");
 $("tabResults").onclick = () => showTab("results");
 $("downloadScores").onclick = downloadScoreSheet;
+$("reviewerName").addEventListener("change", e => setReviewer(e.target.value));
+$("importScores").addEventListener("change", e => { const file = e.target.files && e.target.files[0]; e.target.value = ""; if (file) importScoreSheet(file); });
 $("q").addEventListener("input", e => { S.q = e.target.value; renderList(); });
 document.querySelectorAll(".chip").forEach(c => c.addEventListener("click", () => {
   S.filter = c.dataset.f; document.querySelectorAll(".chip").forEach(x => x.setAttribute("aria-pressed", x === c)); renderList(); }));
 
 // ---------- Boot: render at once, then connect to shared saving
+localLoad();
 try { const v = parseInt(localStorage.getItem("dta26-sel"), 10); if (v >= 0 && v < NOMINEES.length) S.sel = v; } catch {}
 renderList(); renderFile();
 
@@ -625,8 +745,11 @@ renderList(); renderFile();
   S.db = db; S.user = user;
   const uid = user ? await user.id() : null;
   if (!db || !uid) {
-    S.local = true; localLoad(); renderList(); renderFile();
-    showNotice("Scores are kept in this browser only.");
+    S.local = true;
+    $("tabResults").hidden = false;
+    if (!S.reviewer) showNotice("Enter your name above. Scores are saved in this browser under that name.");
+    else hideNotice();
+    renderList(); renderFile();
     return;
   }
   S.uid = uid;
@@ -640,6 +763,14 @@ renderList(); renderFile();
     if (first || (!S.dirty && !S.saving)) { const d = snap.exists ? snap.data() : null; S.mine = d && d.s ? JSON.parse(JSON.stringify(d.s)) : {}; first = false; renderList(); renderFile(); }
   }, () => showNotice("Lost the connection to saved scores. Reload the page to reconnect."));
   db.doc("packets/links").onSnapshot(snap => { const d = snap.exists ? snap.data() : null; S.links = (d && d.links) || {}; if (S.tab === "score") renderFile(); });
-  if (S.admin) db.collection("scores").onSnapshot(qs => { S.all = qs.docs.map(d => ({id:d.id, s:(d.data() || {}).s || {}})); S.lastSync = new Date(); if (S.tab === "results") renderResults(); });
+  if (S.admin) db.collection("scores").onSnapshot(qs => {
+    S.all = qs.docs.map(d => ({id:d.id, name:d.id, s:(d.data() || {}).s || {}}));
+    S.lastSync = new Date();
+    renderList();
+    const active = document.activeElement;
+    if (active && (active.tagName === "TEXTAREA" || active.tagName === "INPUT")) return;
+    if (S.tab === "score") renderFile();
+    if (S.tab === "results") renderResults();
+  });
 })();
 </script>
