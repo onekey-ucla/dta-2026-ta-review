@@ -1,3 +1,4 @@
+<meta charset="utf-8">
 <title>DTA 2026 TA Review</title>
 <meta name="claude:viewport-fit-sides" content="cover">
 <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -47,11 +48,15 @@ button{font:inherit;color:inherit;cursor:pointer}
 .notice{border:1px solid var(--line);background:var(--warn-soft);color:var(--ink);border-radius:var(--r);padding:10px 14px;font-size:14px}
 
 /* desk */
-.desk{display:grid;grid-template-columns:300px minmax(0,1fr);gap:16px;align-items:start}
+.desk{display:grid;grid-template-columns:240px minmax(280px,1.15fr) minmax(340px,0.95fr);gap:16px;align-items:start}
+@media (max-width:1100px){.desk{grid-template-columns:220px minmax(0,1fr)}.viewer{grid-column:1 / -1;height:75vh}}
 @media (max-width:820px){.desk{grid-template-columns:minmax(0,1fr)}}
 .panel{background:var(--surface);border:1px solid var(--line);border-radius:var(--r)}
-.list{display:flex;flex-direction:column;max-height:calc(100vh - 220px);min-height:320px}
-@media (max-width:820px){.list{max-height:46vh}}
+.list{display:flex;flex-direction:column;max-height:calc(100vh - 180px);min-height:320px}
+.viewer{display:flex;flex-direction:column;height:calc(100vh - 180px);min-height:480px;overflow:hidden;padding:0}
+.viewer-bar{flex:0 0 auto;padding:10px 14px;border-bottom:1px solid var(--line);font-weight:600}
+.viewer iframe{flex:1 1 auto;width:100%;min-height:0;height:100%;border:0;background:#fff}
+@media (max-width:820px){.list{max-height:46vh}.viewer{height:70vh}}
 .list-tools{padding:12px;display:flex;flex-direction:column;gap:8px;border-bottom:1px solid var(--line)}
 input[type=search],input[type=url],textarea,select{font:inherit;color:var(--ink);background:var(--bg);border:1px solid var(--line);border-radius:8px;padding:8px 10px;width:100%}
 .chips{display:flex;gap:6px;flex-wrap:wrap}
@@ -70,7 +75,7 @@ input[type=search],input[type=url],textarea,select{font:inherit;color:var(--ink)
 .pill.done{background:var(--good-soft);color:var(--good)}
 
 /* file */
-.file{padding:20px;display:flex;flex-direction:column;gap:20px;min-width:0}
+.file{padding:20px;display:flex;flex-direction:column;gap:20px;min-width:0;max-height:calc(100vh - 180px);overflow:auto}
 .file-head{display:flex;flex-wrap:wrap;justify-content:space-between;gap:12px}
 .facts{display:flex;flex-wrap:wrap;gap:6px 16px;font-size:14px;color:var(--muted)}
 .facts b{color:var(--ink);font-weight:600}
@@ -171,6 +176,7 @@ tr:last-child td{border-bottom:0}
       </div>
       <div class="items" id="items"></div>
     </aside>
+    <article class="panel viewer" id="viewer" aria-label="Nomination packet"></article>
     <article class="panel file" id="file" aria-live="polite"></article>
   </section>
 
@@ -254,12 +260,8 @@ const DISAGREE = 4; // points on the /25 total that flag a nominee for discussio
 const S = { sel: 0, mine: {}, uid: null, db: null, user: null, admin: false, canWrite: true,
   links: {}, all: [], filter: "all", q: "", tab: "score", dirty: false, saving: false, lastSaved: null, local: false };
 
-const PACKET_REPO = "https://github.com/onekey-ucla/dta-2026-ta-review/blob/main/packets/";
 function packetUrl(n){
-  const file = encodeURIComponent(n.name + ".pdf");
-  const host = location.hostname;
-  if (location.protocol === "file:" || host === "localhost" || host === "127.0.0.1") return "packets/" + file;
-  return PACKET_REPO + file;
+  return "packets/" + encodeURIComponent(n.name + ".pdf");
 }
 const $ = id => document.getElementById(id);
 const el = (tag, attrs = {}, ...kids) => { const e = document.createElement(tag);
@@ -345,18 +347,21 @@ function renderFile(){
         el("span", {text:n.div}))),
     el("div", {}, el("span", {class:"pill " + status(e), text:STATUS_LABEL[status(e)]}))));
 
+  const view = $("viewer");
+  view.textContent = "";
+  view.append(
+    el("div", {class:"viewer-bar"}, "Nomination packet"),
+    el("iframe", {title: n.name + " nomination packet", src: link}));
+
   const pk = el("div", {class:"packet"},
-    el("div", {class:"row", style:"justify-content:space-between"},
-      el("div", {}, el("div", {style:"font-weight:600"}, "Nomination packet"),
-        el("div", {class:"muted", style:"font-size:13px"}, `${n.pages} pages · ${n.art} of 5 artifacts · ${n.lor} of 3 letters of recommendation`)),
-      link ? el("a", {class:"btn primary", href:link, target:"_blank", rel:"noopener"}, "Open packet ↗")
-           : el("span", {class:"muted", style:"font-size:13px"}, "Packet link not added yet")),
+    el("div", {}, el("div", {style:"font-weight:600"}, "What is in the packet"),
+      el("div", {class:"muted", style:"font-size:13px"}, `${n.pages} pages · ${n.art} of 5 artifacts · ${n.lor} of 3 letters of recommendation`)),
     el("ol", {}, packetList(n).map(t => el("li", {text:t}))));
   if (n.note) pk.append(el("div", {class:"flag", text:n.note}));
   if (S.admin) {
     const inp = el("input", {type:"url", id:"linkInput", placeholder:"Paste the shared-drive link to this packet", value: link || "", "aria-label":"Packet link"});
     pk.append(el("div", {class:"row"}, inp, el("button", {class:"btn", onclick: () => saveLink(n, inp.value.trim())}, "Save link")),
-      el("div", {class:"muted", style:"font-size:12.5px"}, "Only you see this field. Reviewers see the Open packet button."));
+      el("div", {class:"muted", style:"font-size:12.5px"}, "Only you see this field. Reviewers see the packet beside the score sheet."));
   }
   f.append(pk);
 
@@ -557,7 +562,7 @@ async function exportCsv(reviewers, nameOf){
   reviewers.forEach(r => NOMINEES.forEach(n => { const e = r.s[n.key]; if (!e) return; const cs = critSum(e);
     lines.push([nameOf(r.id), n.name, n.dept, n.div, ...(e.c || []), cs, e.o, cs != null && e.o != null ? cs + e.o : "", e.notes].map(q).join(",")); }));
   const dl = await window.claude?.use?.("downloads");
-  if (!dl) { showNotice("Downloading isn't available in this view. Open the page on claude.ai to export scores."); return; }
+  if (!dl) { showNotice("Downloading isn't available in this view."); return; }
   try { await dl.save({filename:"DTA 2026 TA scores.csv", data: new Blob([lines.join("\n")], {type:"text/csv"})}); } catch {}
 }
 
@@ -582,7 +587,7 @@ renderList(); renderFile();
   const uid = user ? await user.id() : null;
   if (!db || !uid) {
     S.local = true; localLoad(); renderList(); renderFile();
-    showNotice("Shared saving isn't available in this view, so scores are kept in this browser only. Open the page on claude.ai while signed in to save them for the committee.");
+    showNotice("Scores are kept in this browser only.");
     return;
   }
   S.uid = uid;

@@ -4,7 +4,7 @@ Reviewer portal for the 2026 Distinguished Teaching Award (Teaching Assistants).
 Reviewers score each of the 44 nominees against the award rubric; the coordinator
 sees a live summary of all scores.
 
-**Confidential.** This repo contains nominee names and departments. Keep it private.
+This repo contains nominee names, departments, and nomination packets.
 
 ## How it runs
 
